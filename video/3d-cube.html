@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>3D Video Cube - Interactive</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <style>
+        body {
+            margin: 0;
+            background-color: #ffffff;
+            font-family: Arial, sans-serif;
+        }
+        #container {
+            width: 100%;
+            height: 100vh;
+        }
+        #blocker {
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            display: none;
+        }
+        #controls-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            max-width: 350px;
+            transition: transform 0.3s ease;
+        }
+        #controls-panel.hidden {
+            transform: translateX(calc(100% + 40px));
+        }
+        #toggle-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            border: none;
+            padding: 12px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            transition: background 0.2s;
+            z-index: 1000;
+        }
+        #toggle-btn:hover {
+            background: rgba(240, 240, 240, 0.95);
+        }
+        .url-input-group {
+            margin-bottom: 15px;
+        }
+        .url-input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            font-size: 13px;
+            color: #333;
+        }
+        .url-input-group input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 13px;
+            box-sizing: border-box;
+        }
+        .url-input-group input:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+        #update-btn {
+            width: 100%;
+            padding: 10px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        #update-btn:hover {
+            background: #45a049;
+        }
+        h3 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            color: #333;
+            font-size: 16px;
+        }
+        .hint {
+            font-size: 11px;
+            color: #666;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div id="container"></div>
+    <div id="blocker"></div>
+    
+    <button id="toggle-btn">⚙️ Settings</button>
+    
+    <div id="controls-panel" class="hidden">
+        <h3>Video URLs</h3>
+        <div class="url-input-group">
+            <label>Front Face</label>
+            <input type="text" id="url-front" placeholder="YouTube URL or Video ID">
+            <div class="hint">e.g., https://youtube.com/watch?v=SJOz3qjfQXU or SJOz3qjfQXU</div>
+        </div>
+        <div class="url-input-group">
+            <label>Right Face</label>
+            <input type="text" id="url-right" placeholder="YouTube URL or Video ID">
+            <div class="hint">e.g., Y2-xZ-1HE-Q</div>
+        </div>
+        <div class="url-input-group">
+            <label>Back Face</label>
+            <input type="text" id="url-back" placeholder="YouTube URL or Video ID">
+            <div class="hint">e.g., IrydklNpcFI</div>
+        </div>
+        <div class="url-input-group">
+            <label>Left Face</label>
+            <input type="text" id="url-left" placeholder="YouTube URL or Video ID">
+            <div class="hint">e.g., 9ubytEsCaS0</div>
+        </div>
+        <button id="update-btn">Update Videos</button>
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.170.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.170.0/examples/jsm/"
+            }
+        }
+    </script>
+    <script type="module">
+        import * as THREE from 'three';
+        import { TrackballControls } from 'three/addons/controls/TrackballControls.js';
+        import { CSS3DRenderer, CSS3DObject } from 'three/addons/renderers/CSS3DRenderer.js';
+
+        let camera, scene, renderer, controls;
+        let group;
+        let videoObjects = [];
+
+        // Default video IDs
+        const defaultVideos = {
+            front: 'SJOz3qjfQXU',
+            right: 'Y2-xZ-1HE-Q',
+            back: 'IrydklNpcFI',
+            left: '9ubytEsCaS0'
+        };
+
+        // Extract YouTube video ID from URL or return as-is if already an ID
+        function extractVideoId(input) {
+            if (!input) return '';
+            
+            // Remove whitespace
+            input = input.trim();
+            
+            // If it's already just an ID (11 characters, alphanumeric with dash/underscore)
+            if (/^[a-zA-Z0-9_-]{11}$/.test(input)) {
+                return input;
+            }
+            
+            // Try to extract from various YouTube URL formats
+            const patterns = [
+                /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
+                /^.*(?:youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=)([^#\&\?]*).*/
+            ];
+            
+            for (const pattern of patterns) {
+                const match = input.match(pattern);
+                if (match && match[1]) {
+                    return match[1];
+                }
+            }
+            
+            return input; // Return as-is if no pattern matches
+        }
+
+        function createElement(id, x, y, z, ry) {
+            const div = document.createElement('div');
+            div.style.width = '480px';
+            div.style.height = '360px';
+            div.style.backgroundColor = '#000';
+
+            const iframe = document.createElement('iframe');
+            iframe.style.width = '480px';
+            iframe.style.height = '360px';
+            iframe.style.border = '0px';
+            iframe.src = `https://www.youtube.com/embed/${id}?rel=0`;
+            div.appendChild(iframe);
+
+            const object = new CSS3DObject(div);
+            object.position.set(x, y, z);
+            object.rotation.y = ry;
+            
+            return object;
+        }
+
+        function updateVideos() {
+            const videos = {
+                front: extractVideoId(document.getElementById('url-front').value) || defaultVideos.front,
+                right: extractVideoId(document.getElementById('url-right').value) || defaultVideos.right,
+                back: extractVideoId(document.getElementById('url-back').value) || defaultVideos.back,
+                left: extractVideoId(document.getElementById('url-left').value) || defaultVideos.left
+            };
+
+            // Remove old objects
+            videoObjects.forEach(obj => group.remove(obj));
+            videoObjects = [];
+
+            // Create new objects
+            videoObjects.push(createElement(videos.front, 0, 0, 240, 0));
+            videoObjects.push(createElement(videos.right, 240, 0, 0, Math.PI / 2));
+            videoObjects.push(createElement(videos.back, 0, 0, -240, Math.PI));
+            videoObjects.push(createElement(videos.left, -240, 0, 0, -Math.PI / 2));
+
+            videoObjects.forEach(obj => group.add(obj));
+        }
+
+        function init() {
+            const container = document.getElementById('container');
+
+            camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1, 5000);
+            camera.position.set(500, 350, 750);
+
+            scene = new THREE.Scene();
+
+            renderer = new CSS3DRenderer();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            container.appendChild(renderer.domElement);
+
+            group = new THREE.Group();
+            scene.add(group);
+
+            // Initialize with default videos
+            document.getElementById('url-front').value = defaultVideos.front;
+            document.getElementById('url-right').value = defaultVideos.right;
+            document.getElementById('url-back').value = defaultVideos.back;
+            document.getElementById('url-left').value = defaultVideos.left;
+            updateVideos();
+
+            controls = new TrackballControls(camera, renderer.domElement);
+            controls.rotateSpeed = 4;
+
+            window.addEventListener('resize', onWindowResize);
+
+            // Block iframe events when dragging camera
+            const blocker = document.getElementById('blocker');
+            controls.addEventListener('start', function () {
+                blocker.style.display = '';
+            });
+            controls.addEventListener('end', function () {
+                blocker.style.display = 'none';
+            });
+
+            // UI controls
+            const toggleBtn = document.getElementById('toggle-btn');
+            const controlsPanel = document.getElementById('controls-panel');
+            const updateBtn = document.getElementById('update-btn');
+
+            toggleBtn.addEventListener('click', () => {
+                controlsPanel.classList.toggle('hidden');
+                toggleBtn.textContent = controlsPanel.classList.contains('hidden') ? '⚙️ Settings' : '✕ Close';
+            });
+
+            updateBtn.addEventListener('click', () => {
+                updateVideos();
+            });
+
+            // Allow Enter key to update
+            document.querySelectorAll('input').forEach(input => {
+                input.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        updateVideos();
+                    }
+                });
+            });
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        init();
+        animate();
+    </script>
+</body>
+</html>
