@@ -1,48 +1,65 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- Essential Meta Tags -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Browser Overlays Demo</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    
+    <!-- SEO Meta Tags -->
+    <title>Browser Overlays Demo - Multi-Page Navigation</title>
+    <meta name="description" content="A structured demo of browser overlays organized into categories with navigable pages. Built for GitHub Pages.">
+    <meta name="keywords" content="browser overlays, GitHub Pages, HTML navigation, folder structure">
+    <meta name="author" content="artechfuz3d">
+    <meta name="robots" content="index, follow">
+    
+    <!-- Open Graph Meta Tags for Social Sharing -->
+    <meta property="og:title" content="Browser Overlays Demo">
+    <meta property="og:description" content="Navigate through categorized overlay pages.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://artechfuz3d.github.io/browser-overlays/">
+    <meta property="og:image" content="https://artechfuz3d.github.io/browser-overlays/og-image.jpg"> <!-- Add an image if desired -->
+    
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Browser Overlays Demo">
+    <meta name="twitter:description" content="Structured navigation for overlay demos.">
+    <meta name="twitter:image" content="https://artechfuz3d.github.io/browser-overlays/og-image.jpg">
+    
+    <!-- Favicon -->
+    <link rel="icon" href="favicon.ico" type="image/x-icon"> <!-- Add if desired -->
+    
+    <!-- Stylesheet -->
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
         <h1>Browser Overlays</h1>
-        <p>Select an overlay from the menu below:</p>
-        <nav class="menu">
-            <button class="open-overlay" data-target="overlay1">LEGO Screensaver</button>
-            <button class="open-overlay" data-target="overlay2">Image Gallery</button>
-            <button class="open-overlay" data-target="overlay3">Info Panel</button>
+        <p>Navigate to categorized overlay pages below:</p>
+        <nav class="menu" aria-label="Category navigation menu">
+            <section class="category">
+                <h2>Screensavers</h2>
+                <ul>
+                    <li><a href="/screensaver/lego-01.html">LEGO Screensaver 01</a></li>
+                    <li><a href="/screensaver/lego-02.html">LEGO Screensaver 02</a></li>
+                </ul>
+            </section>
+            <section class="category">
+                <h2>Galleries</h2>
+                <ul>
+                    <li><a href="/gallery/images-01.html">Image Gallery 01</a></li>
+                    <li><a href="/gallery/images-02.html">Image Gallery 02</a></li>
+                </ul>
+            </section>
+            <section class="category">
+                <h2>Info Panels</h2>
+                <ul>
+                    <li><a href="/info/panel-01.html">Info Panel 01</a></li>
+                    <li><a href="/info/panel-02.html">Info Panel 02</a></li>
+                </ul>
+            </section>
         </nav>
     </div>
-
-    <div id="overlay1" class="overlay">
-        <div class="overlay-content">
-            <h2>LEGO Screensaver Overlay</h2>
-            <p>This could embed a LEGO-themed screensaver or animation. Add your iframe or video here.</p>
-            <!-- Example: <iframe src="your-lego-screensaver.html" width="600" height="400"></iframe> -->
-            <button class="close-overlay">Close</button>
-        </div>
-    </div>
-
-    <div id="overlay2" class="overlay">
-        <div class="overlay-content">
-            <h2>Image Gallery Overlay</h2>
-            <p>A simple gallery overlay. Add images here.</p>
-            <!-- Example: <img src="image1.jpg" alt="Image 1"> -->
-            <button class="close-overlay">Close</button>
-        </div>
-    </div>
-
-    <div id="overlay3" class="overlay">
-        <div class="overlay-content">
-            <h2>Info Panel Overlay</h2>
-            <p>Additional information or form. Customize as needed.</p>
-            <button class="close-overlay">Close</button>
-        </div>
-    </div>
-
-    <script src="script.js"></script>
+    <script src="script.js" defer></script>
 </body>
 </html>
