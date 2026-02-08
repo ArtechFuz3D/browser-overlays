@@ -26,6 +26,7 @@
             position: fixed;
             top: 0;
             left: 0;
+            z-index: 1;
         }
         
         #blocker {
@@ -310,6 +311,17 @@
             text-align: center;
             z-index: 2000;
         }
+
+        /* Constellation Canvas */
+        #constellation-canvas {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+            display: block;
+        }
         
         .spinner {
             width: 40px;
@@ -355,6 +367,7 @@
     </style>
 </head>
 <body>
+    <canvas id="constellation-canvas" aria-hidden="true"></canvas>
     <div class="loading" id="loading">
         <div class="spinner"></div>
         <div class="loading-text">Initializing 3D Environment</div>
@@ -445,6 +458,32 @@
                 <button class="btn-full" id="preset-nature" style="margin-bottom: 10px;">Nature Scenes</button>
                 <button class="btn-full" id="preset-space">Space Exploration</button>
             </div>
+            
+            <div class="panel-section">
+                <h3>Visual Effects</h3>
+                <div class="input-group">
+                    <label>Constellation Background</label>
+                    <div style="display:flex;gap:10px;align-items:center;">
+                        <input type="checkbox" id="toggle-constellation">
+                        <span class="hint" style="margin:0;">Enable a particle constellation background</span>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label>Particle Count <span id="const-count-label">120</span></label>
+                    <input type="range" id="const-count" min="20" max="400" value="120">
+                </div>
+
+                <div class="input-group">
+                    <label>Link Distance <span id="const-distance-label">120</span></label>
+                    <input type="range" id="const-distance" min="40" max="400" value="120">
+                </div>
+
+                <div class="input-group">
+                    <label>Speed <span id="const-speed-label">1.0</span></label>
+                    <input type="range" id="const-speed" min="0" max="3" step="0.1" value="1.0">
+                </div>
+            </div>
         </div>
     </div>
 
@@ -460,6 +499,140 @@
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         import { CSS3DRenderer, CSS3DObject } from 'three/addons/renderers/CSS3DRenderer.js';
+
+        // Constellation background implementation
+        class Constellation {
+            constructor(canvas, opts = {}) {
+                this.canvas = canvas;
+                this.ctx = canvas.getContext('2d');
+                this.dpr = Math.max(1, window.devicePixelRatio || 1);
+                this.particles = [];
+                this.rafId = null;
+                this.running = false;
+
+                this.count = opts.count || 120;
+                this.maxDistance = opts.maxDistance || 120;
+                this.speed = opts.speed || 1.0;
+                this.pointColor = opts.pointColor || '255,255,255';
+                this.lineColor = opts.lineColor || '200,200,255';
+
+                this.resize = this.resize.bind(this);
+                this._tick = this._tick.bind(this);
+                window.addEventListener('resize', this.resize);
+                this.resize();
+            }
+
+            resize() {
+                const w = this.canvas.clientWidth || window.innerWidth;
+                const h = this.canvas.clientHeight || window.innerHeight;
+                this.width = Math.max(1, Math.floor(w));
+                this.height = Math.max(1, Math.floor(h));
+                this.canvas.width = this.width * this.dpr;
+                this.canvas.height = this.height * this.dpr;
+                this.canvas.style.width = `${this.width}px`;
+                this.canvas.style.height = `${this.height}px`;
+                this.ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+                this._ensureParticles();
+            }
+
+            _ensureParticles() {
+                const desired = Math.max(0, Math.round(this.count * (this.width * this.height) / (1920 * 1080)));
+                // Keep counts within reasonable bounds
+                const capped = Math.min(Math.max(desired, 20), 600);
+                while (this.particles.length < capped) this.particles.push(this._createParticle());
+                while (this.particles.length > capped) this.particles.pop();
+            }
+
+            _createParticle() {
+                return {
+                    x: Math.random() * this.width,
+                    y: Math.random() * this.height,
+                    vx: (Math.random() - 0.5) * 0.6 * this.speed,
+                    vy: (Math.random() - 0.5) * 0.6 * this.speed,
+                    r: Math.random() * 1.6 + 0.4
+                };
+            }
+
+            start() {
+                if (this.running) return;
+                this.running = true;
+                this._ensureParticles();
+                this.rafId = requestAnimationFrame(this._tick);
+            }
+
+            stop() {
+                this.running = false;
+                if (this.rafId) cancelAnimationFrame(this.rafId);
+                this.rafId = null;
+                // clear canvas
+                this.ctx.clearRect(0, 0, this.width, this.height);
+            }
+
+            destroy() {
+                this.stop();
+                window.removeEventListener('resize', this.resize);
+                this.particles = [];
+            }
+
+            setCount(v) { this.count = v; this._ensureParticles(); }
+            setDistance(d) { this.maxDistance = d; }
+            setSpeed(s) { this.speed = s; }
+
+            _tick() {
+                this._updateParticles();
+                this._draw();
+                if (this.running) this.rafId = requestAnimationFrame(this._tick);
+            }
+
+            _updateParticles() {
+                const w = this.width;
+                const h = this.height;
+                const s = this.speed;
+                for (let p of this.particles) {
+                    p.x += p.vx * s;
+                    p.y += p.vy * s;
+                    if (p.x < 0) p.x = w;
+                    else if (p.x > w) p.x = 0;
+                    if (p.y < 0) p.y = h;
+                    else if (p.y > h) p.y = 0;
+                }
+            }
+
+            _draw() {
+                const ctx = this.ctx;
+                ctx.clearRect(0, 0, this.width, this.height);
+
+                // draw lines
+                const maxD = this.maxDistance;
+                const maxD2 = maxD * maxD;
+                for (let i = 0; i < this.particles.length; i++) {
+                    const a = this.particles[i];
+                    for (let j = i + 1; j < this.particles.length; j++) {
+                        const b = this.particles[j];
+                        const dx = a.x - b.x;
+                        const dy = a.y - b.y;
+                        const d2 = dx * dx + dy * dy;
+                        if (d2 <= maxD2) {
+                            const t = 1 - d2 / maxD2;
+                            ctx.strokeStyle = `rgba(${this.lineColor},${(t * 0.6).toFixed(3)})`;
+                            ctx.lineWidth = 1 * t;
+                            ctx.beginPath();
+                            ctx.moveTo(a.x, a.y);
+                            ctx.lineTo(b.x, b.y);
+                            ctx.stroke();
+                        }
+                    }
+                }
+
+                // draw points
+                for (let p of this.particles) {
+                    ctx.fillStyle = `rgba(${this.pointColor},0.95)`;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+        }
 
         let camera, scene, renderer, controls;
         let group;
@@ -593,6 +766,59 @@
 
         function init() {
             const container = document.getElementById('container');
+
+            // Setup constellation canvas controller
+            const constCanvas = document.getElementById('constellation-canvas');
+            const constellation = new Constellation(constCanvas, {
+                count: parseInt(localStorage.getItem('constellation-count') || '120', 10),
+                maxDistance: parseInt(localStorage.getItem('constellation-distance') || '120', 10),
+                speed: parseFloat(localStorage.getItem('constellation-speed') || '1.0')
+            });
+
+            const toggleEl = document.getElementById('toggle-constellation');
+            const countEl = document.getElementById('const-count');
+            const distEl = document.getElementById('const-distance');
+            const speedEl = document.getElementById('const-speed');
+            const countLabel = document.getElementById('const-count-label');
+            const distLabel = document.getElementById('const-distance-label');
+            const speedLabel = document.getElementById('const-speed-label');
+
+            // restore UI state
+            toggleEl.checked = localStorage.getItem('constellation-enabled') === '1';
+            countEl.value = localStorage.getItem('constellation-count') || countEl.value;
+            distEl.value = localStorage.getItem('constellation-distance') || distEl.value;
+            speedEl.value = localStorage.getItem('constellation-speed') || speedEl.value;
+            countLabel.textContent = countEl.value;
+            distLabel.textContent = distEl.value;
+            speedLabel.textContent = parseFloat(speedEl.value).toFixed(1);
+
+            function applyConstSettings() {
+                const c = parseInt(countEl.value, 10);
+                const d = parseInt(distEl.value, 10);
+                const s = parseFloat(speedEl.value);
+                constellation.setCount(c);
+                constellation.setDistance(d);
+                constellation.setSpeed(s);
+                localStorage.setItem('constellation-count', String(c));
+                localStorage.setItem('constellation-distance', String(d));
+                localStorage.setItem('constellation-speed', String(s));
+                countLabel.textContent = c;
+                distLabel.textContent = d;
+                speedLabel.textContent = s.toFixed(1);
+            }
+
+            toggleEl.addEventListener('change', () => {
+                const enabled = toggleEl.checked;
+                localStorage.setItem('constellation-enabled', enabled ? '1' : '0');
+                if (enabled) constellation.start(); else constellation.stop();
+            });
+
+            [countEl, distEl, speedEl].forEach(el => {
+                el.addEventListener('input', () => applyConstSettings());
+            });
+
+            // start if enabled
+            if (toggleEl.checked) constellation.start();
 
             camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1, 10000);
             camera.position.set(600, 400, 800);
