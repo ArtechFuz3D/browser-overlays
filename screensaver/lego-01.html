@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=1920, height=1080">
+    <title>LEGO Screensaver Overlay</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            width: 1920px;
+            height: 1080px;
+            overflow: hidden;
+            background: transparent;
+            font-family: Arial, sans-serif;
+        }
+
+        .screensaver-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        /* LEGO head */
+        .lego-head {
+            position: absolute;
+            width: 120px;
+            height: 140px;
+            filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.3));
+        }
+
+        /* Top stud */
+        .head-stud {
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 45px;
+            height: 22px;
+            border-radius: 50% 50% 45% 45% / 70% 70% 30% 30%;
+            box-shadow: 
+                inset 0 -3px 6px rgba(0, 0, 0, 0.25),
+                inset 0 3px 6px rgba(255, 255, 255, 0.4);
+            z-index: 5;
+        }
+
+        /* Head main */
+        .head-main {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            border-radius: 18px 18px 12px 12px;
+            box-shadow: 
+                inset 0 -6px 0 rgba(0, 0, 0, 0.2),
+                inset 0 6px 0 rgba(255, 255, 255, 0.25);
+        }
+
+        /* Face */
+        .face {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -45%);
+            width: 85px;
+            height: 70px;
+        }
+
+        /* ============ FACE 1: CLASSIC SMILE ============ */
+        .face-classic::before {
+            content: '';
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            background: #000;
+            border-radius: 50%;
+            top: 12px;
+            left: 18px;
+            box-shadow: 44px 0 0 #000;
+        }
+        .face-classic::after {
+            content: '';
+            position: absolute;
+            width: 40px;
+            height: 18px;
+            border: 4px solid #000;
+            border-top: none;
+            border-radius: 0 0 40px 40px;
+            bottom: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        /* ============ FACE 2: BIG GRIN ============ */
+        .face-biggrin::before {
+            content: '';
+            position: absolute;
+            width: 12px;
+            height: 18px;
+            background: #000;
+            border-radius: 50%;
+            top: 10px;
+            left: 20px;
+            box-shadow: 46px 0 0 #000;
+        }
+        .face-biggrin::after {
+            content: '';
+            position: absolute;
+            width: 50px;
+            height: 24px;
+            border: 5px solid #000;
+            border-top: none;
+            border-radius: 0 0 50px 50px;
+            bottom: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        /* ============ FACE 3: ANGRY ============ */
+        .face-angry::before {
+            content: '/ \\';
+            position: absolute;
+            font-size: 28px;
+            font-weight: bold;
+            top: 0;
+            left: 11px;
+            letter-spacing: 28px;
+            color: #000;
+        }
+        .face-angry .eyes {
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            background: #000;
+            border-radius: 50%;
+            top: 18px;
+            left: 20px;
+            box-shadow: 44px 0 0 #000;
+        }
+        .face-angry::after {
+            content: '';
+            position: absolute;
+            width: 36px;
+            height: 16px;
+            border: 4px solid #000;
+            border-bottom: none;
+            border-radius: 36px 36px 0 0;
+            bottom: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        /* ============ FACE 4: SURPRISED ============ */
+        .face-surprised::before {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: #000;
+            border-radius: 50%;
+            top: 10px;
+            left: 16px;
+            box-shadow: 42px 0 0 #000;
+        }
+        .face-surprised::after {
+            content: '';
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            border: 5px solid #000;
+            border-radius: 50%;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #000;
+        }
+
+        /* ============ FACE 5: WINK ============ */
+        .face-wink .left-eye {
+            position: absolute;
+            width: 18px;
+            height: 4px;
+            background: #000;
+            top: 18px;
+            left: 18px;
+            border-radius: 2px;
+        }
+        .face-wink .right-eye {
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            background: #000;
+            border-radius: 50%;
+            top: 12px;
+            right: 18px;
+        }
+        .face-wink::after {
+            content: '';
+            position: absolute;
+            width: 35px;
+            height: 16px;
+            border: 4px solid #000;
+            border-top: none;
+            border-radius: 0 0 35px 35px;
+            bottom: 14px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        /* ============ FACE 6: SUNGLASSES ============ */
+        .face-sunglasses .glasses {
+            position: absolute;
+            width: 26px;
+            height: 16px;
+            background: #000;
+            border-radius: 4px;
+            top: 14px;
+            left: 12px;
+            box-shadow: 38px 0 0 #000;
+        }
+        .face-sunglasses .glasses::before {
+            content: '';
+            position: absolute;
+            width: 6px;
+            height: 4px;
+            background: #000;
+            top: 6px;
+            left: 26px;
+        }
+        .face-sunglasses::after {
+            content: '';
+            position: absolute;
+            width: 32px;
+            height: 14px;
+            border: 4px solid #000;
+            border-top: none;
+            border-radius: 0 0 32px 32px;
+            bottom: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        /* ============ FACE 7: SILLY TONGUE ============ */
+        .face-tongue::before {
+            content: '';
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            background: #000;
+            border-radius: 50%;
+            top: 12px;
+            left: 18px;
+            box-shadow: 44px 0 0 #000;
+        }
+        .face-tongue .mouth {
+            position: absolute;
+            width: 36px;
+            height: 18px;
+            border: 4px solid #000;
+            border-radius: 50%;
+            bottom: 14px;
+            left: 50%;
+            transform: translateX(-50%);
+            overflow: hidden;
+        }
+        .face-tongue .tongue {
+            position: absolute;
+            width: 16px;
+            height: 12px;
+            background: #ff69b4;
+            border-radius: 0 0 50% 50%;
+            bottom: -2px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        /* ============ FACE 8: CONFUSED ============ */
+        .face-confused::before {
+            content: '';
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            background: #000;
+            border-radius: 50%;
+            top: 12px;
+            left: 18px;
+            box-shadow: 44px 0 0 #000;
+        }
+        .face-confused::after {
+            content: '~';
+            position: absolute;
+            font-size: 32px;
+            font-weight: bold;
+            bottom: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #000;
+        }
+
+        /* ============ FACE 9: NERVOUS SWEAT ============ */
+        .face-nervous::before {
+            content: '';
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            background: #000;
+            border-radius: 50%;
+            top: 12px;
+            left: 18px;
+            box-shadow: 44px 0 0 #000;
+        }
+        .face-nervous .sweat {
+            position: absolute;
+            width: 8px;
+            height: 12px;
+            background: #4fc3f7;
+            border-radius: 50% 0 50% 50%;
+            top: 8px;
+            right: 8px;
+            transform: rotate(45deg);
+        }
+        .face-nervous::after {
+            content: '';
+            position: absolute;
+            width: 28px;
+            height: 12px;
+            border: 3px solid #000;
+            border-top: none;
+            border-radius: 0 0 28px 28px;
+            bottom: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        /* ============ FACE 10: PIRATE ============ */
+        .face-pirate .eye-left {
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            background: #000;
+            border-radius: 50%;
+            top: 14px;
+            left: 18px;
+        }
+        .face-pirate .eyepatch {
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            background: #000;
+            border-radius: 50%;
+            top: 10px;
+            right: 12px;
+        }
+        .face-pirate .eyepatch::before {
+            content: '';
+            position: absolute;
+            width: 50px;
+            height: 3px;
+            background: #000;
+            top: 10px;
+            right: 24px;
+        }
+        .face-pirate::after {
+            content: '';
+            position: absolute;
+            width: 38px;
+            height: 16px;
+            border: 4px solid #000;
+            border-top: none;
+            border-radius: 0 0 38px 38px;
+            bottom: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        /* Head colors */
+        .color-yellow .head-main { background: linear-gradient(145deg, #FFD54F 0%, #FBC02D 100%); }
+        .color-yellow .head-stud { background: linear-gradient(145deg, #FFEB3B, #F9A825); }
+        
+        .color-red .head-main { background: linear-gradient(145deg, #EF5350 0%, #C62828 100%); }
+        .color-red .head-stud { background: linear-gradient(145deg, #F44336, #B71C1C); }
+        
+        .color-blue .head-main { background: linear-gradient(145deg, #42A5F5 0%, #1565C0 100%); }
+        .color-blue .head-stud { background: linear-gradient(145deg, #2196F3, #0D47A1); }
+        
+        .color-green .head-main { background: linear-gradient(145deg, #66BB6A 0%, #2E7D32 100%); }
+        .color-green .head-stud { background: linear-gradient(145deg, #4CAF50, #1B5E20); }
+        
+        .color-orange .head-main { background: linear-gradient(145deg, #FFA726 0%, #E65100 100%); }
+        .color-orange .head-stud { background: linear-gradient(145deg, #FF9800, #BF360C); }
+        
+        .color-purple .head-main { background: linear-gradient(145deg, #AB47BC 0%, #6A1B9A 100%); }
+        .color-purple .head-stud { background: linear-gradient(145deg, #9C27B0, #4A148C); }
+        
+        .color-pink .head-main { background: linear-gradient(145deg, #EC407A 0%, #AD1457 100%); }
+        .color-pink .head-stud { background: linear-gradient(145deg, #E91E63, #880E4F); }
+        
+        .color-teal .head-main { background: linear-gradient(145deg, #26A69A 0%, #00695C 100%); }
+        .color-teal .head-stud { background: linear-gradient(145deg, #009688, #004D40); }
+        
+        .color-lime .head-main { background: linear-gradient(145deg, #9CCC65 0%, #558B2F 100%); }
+        .color-lime .head-stud { background: linear-gradient(145deg, #8BC34A, #33691E); }
+        
+        .color-brown .head-main { background: linear-gradient(145deg, #8D6E63 0%, #4E342E 100%); }
+        .color-brown .head-stud { background: linear-gradient(145deg, #795548, #3E2723); }
+
+        /* Trail */
+        .trail {
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none;
+            animation: trailFade 0.6s ease-out forwards;
+        }
+
+        @keyframes trailFade {
+            from {
+                opacity: 0.5;
+                transform: scale(1);
+            }
+            to {
+                opacity: 0;
+                transform: scale(1.8);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="screensaver-container" id="container"></div>
+
+    <script>
+        const FACES = [
+            'classic', 'biggrin', 'angry', 'surprised', 'wink', 
+            'sunglasses', 'tongue', 'confused', 'nervous', 'pirate'
+        ];
+        
+        const COLORS = [
+            'yellow', 'red', 'blue', 'green', 'orange', 
+            'purple', 'pink', 'teal', 'lime', 'brown'
+        ];
+
+        class LegoHead {
+            constructor(container) {
+                this.container = container;
+                this.x = Math.random() * 1800 + 60;
+                this.y = Math.random() * 900 + 90;
+                
+                // More dynamic initial speeds
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 3 + Math.random() * 5;
+                this.vx = Math.cos(angle) * speed;
+                this.vy = Math.sin(angle) * speed;
+                
+                this.rotation = Math.random() * 360;
+                this.rotationSpeed = (Math.random() - 0.5) * 8;
+                
+                this.color = COLORS[Math.floor(Math.random() * COLORS.length)];
+                this.face = FACES[Math.floor(Math.random() * FACES.length)];
+                
+                this.trailTimer = 0;
+                this.element = this.createElement();
+            }
+
+            createElement() {
+                const head = document.createElement('div');
+                head.className = `lego-head color-${this.color}`;
+                
+                let faceHTML = `<div class="face face-${this.face}">`;
+                
+                // Add specific elements for faces that need them
+                if (this.face === 'wink') {
+                    faceHTML += '<div class="left-eye"></div><div class="right-eye"></div>';
+                } else if (this.face === 'sunglasses') {
+                    faceHTML += '<div class="glasses"></div>';
+                } else if (this.face === 'tongue') {
+                    faceHTML += '<div class="mouth"><div class="tongue"></div></div>';
+                } else if (this.face === 'angry') {
+                    faceHTML += '<div class="eyes"></div>';
+                } else if (this.face === 'nervous') {
+                    faceHTML += '<div class="sweat"></div>';
+                } else if (this.face === 'pirate') {
+                    faceHTML += '<div class="eye-left"></div><div class="eyepatch"></div>';
+                }
+                
+                faceHTML += '</div>';
+                
+                head.innerHTML = `
+                    <div class="head-stud"></div>
+                    <div class="head-main">${faceHTML}</div>
+                `;
+                
+                this.container.appendChild(head);
+                return head;
+            }
+
+            createTrail() {
+                const trail = document.createElement('div');
+                trail.className = 'trail';
+                trail.style.left = (this.x + 60) + 'px';
+                trail.style.top = (this.y + 70) + 'px';
+                trail.style.width = '30px';
+                trail.style.height = '30px';
+                trail.style.background = this.getColorGradient();
+                this.container.appendChild(trail);
+                
+                setTimeout(() => trail.remove(), 600);
+            }
+
+            getColorGradient() {
+                const colorMap = {
+                    yellow: 'radial-gradient(circle, rgba(255,213,79,0.6), transparent)',
+                    red: 'radial-gradient(circle, rgba(239,83,80,0.6), transparent)',
+                    blue: 'radial-gradient(circle, rgba(66,165,245,0.6), transparent)',
+                    green: 'radial-gradient(circle, rgba(102,187,106,0.6), transparent)',
+                    orange: 'radial-gradient(circle, rgba(255,167,38,0.6), transparent)',
+                    purple: 'radial-gradient(circle, rgba(171,71,188,0.6), transparent)',
+                    pink: 'radial-gradient(circle, rgba(236,64,122,0.6), transparent)',
+                    teal: 'radial-gradient(circle, rgba(38,166,154,0.6), transparent)',
+                    lime: 'radial-gradient(circle, rgba(156,204,101,0.6), transparent)',
+                    brown: 'radial-gradient(circle, rgba(141,110,99,0.6), transparent)'
+                };
+                return colorMap[this.color];
+            }
+
+            update(deltaTime) {
+                // Apply minimal damping
+                this.vx *= 0.998;
+                this.vy *= 0.998;
+                
+                // Keep minimum speed
+                const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+                if (speed < 2) {
+                    const angle = Math.random() * Math.PI * 2;
+                    this.vx = Math.cos(angle) * 4;
+                    this.vy = Math.sin(angle) * 4;
+                }
+                
+                // Max speed
+                if (speed > 12) {
+                    this.vx = (this.vx / speed) * 12;
+                    this.vy = (this.vy / speed) * 12;
+                }
+                
+                this.x += this.vx;
+                this.y += this.vy;
+                this.rotation += this.rotationSpeed;
+                
+                // Bounce with energy
+                if (this.x < 0 || this.x > 1800) {
+                    this.vx *= -1.05;
+                    this.x = Math.max(0, Math.min(1800, this.x));
+                    this.rotationSpeed += (Math.random() - 0.5) * 4;
+                }
+                
+                if (this.y < 0 || this.y > 940) {
+                    this.vy *= -1.05;
+                    this.y = Math.max(0, Math.min(940, this.y));
+                    this.rotationSpeed += (Math.random() - 0.5) * 4;
+                }
+                
+                // Rotation damping
+                this.rotationSpeed *= 0.99;
+                
+                // Trail
+                this.trailTimer += deltaTime;
+                if (this.trailTimer > 50) {
+                    this.createTrail();
+                    this.trailTimer = 0;
+                }
+                
+                // Update DOM
+                this.element.style.left = this.x + 'px';
+                this.element.style.top = this.y + 'px';
+                this.element.style.transform = `rotate(${this.rotation}deg)`;
+            }
+        }
+
+        // Setup
+        const container = document.getElementById('container');
+        const heads = [];
+        
+        // Create 18 heads for more chaos
+        for (let i = 0; i < 18; i++) {
+            heads.push(new LegoHead(container));
+        }
+
+        // Collision detection
+        function handleCollisions() {
+            for (let i = 0; i < heads.length; i++) {
+                for (let j = i + 1; j < heads.length; j++) {
+                    const dx = heads[i].x - heads[j].x;
+                    const dy = heads[i].y - heads[j].y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (dist < 120 && dist > 0) {
+                        // Normalize
+                        const nx = dx / dist;
+                        const ny = dy / dist;
+                        
+                        // Separate
+                        const overlap = 120 - dist;
+                        heads[i].x += nx * overlap * 0.5;
+                        heads[i].y += ny * overlap * 0.5;
+                        heads[j].x -= nx * overlap * 0.5;
+                        heads[j].y -= ny * overlap * 0.5;
+                        
+                        // Elastic collision with energy boost
+                        const dvx = heads[i].vx - heads[j].vx;
+                        const dvy = heads[i].vy - heads[j].vy;
+                        const dvn = dvx * nx + dvy * ny;
+                        
+                        if (dvn < 0) {
+                            const impulse = dvn * 1.3; // Energy boost
+                            
+                            heads[i].vx -= impulse * nx;
+                            heads[i].vy -= impulse * ny;
+                            heads[j].vx += impulse * nx;
+                            heads[j].vy += impulse * ny;
+                            
+                            // Random spin
+                            heads[i].rotationSpeed += (Math.random() - 0.5) * 6;
+                            heads[j].rotationSpeed += (Math.random() - 0.5) * 6;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Animation loop
+        let lastTime = performance.now();
+        
+        function animate(currentTime) {
+            const deltaTime = currentTime - lastTime;
+            lastTime = currentTime;
+            
+            heads.forEach(head => head.update(deltaTime));
+            handleCollisions();
+            
+            requestAnimationFrame(animate);
+        }
+
+        animate(performance.now());
+    </script>
+</body>
+</html>
