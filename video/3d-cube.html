@@ -5,15 +5,28 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
     <style>
-        body {
+        * {
             margin: 0;
-            background-color: #ffffff;
-            font-family: Arial, sans-serif;
+            padding: 0;
+            box-sizing: border-box;
         }
+        
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #0a0a0a;
+        }
+        
         #container {
             width: 100%;
-            height: 100vh;
+            height: 100%;
+            position: fixed;
+            top: 0;
+            left: 0;
         }
+        
         #blocker {
             position: absolute;
             top: 0;
@@ -21,86 +34,193 @@
             bottom: 0;
             right: 0;
             display: none;
+            z-index: 100;
         }
+        
         #controls-panel {
-            position: absolute;
+            position: fixed;
             top: 20px;
             right: 20px;
-            background: rgba(255, 255, 255, 0.95);
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            max-width: 350px;
-            transition: transform 0.3s ease;
+            background: rgba(255, 255, 255, 0.98);
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            max-width: 380px;
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 1001;
+            backdrop-filter: blur(10px);
         }
+        
+        #controls-panel::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        #controls-panel::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: 4px;
+        }
+        
+        #controls-panel::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 4px;
+        }
+        
         #controls-panel.hidden {
             transform: translateX(calc(100% + 40px));
         }
+        
         #toggle-btn {
-            position: absolute;
+            position: fixed;
             top: 20px;
             right: 20px;
-            background: rgba(255, 255, 255, 0.95);
+            background: rgba(255, 255, 255, 0.98);
             border: none;
-            padding: 12px 16px;
+            padding: 14px 18px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 1002;
+            color: #333;
+        }
+        
+        #toggle-btn:hover {
+            background: rgba(240, 240, 240, 0.98);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+        }
+        
+        #toggle-btn:active {
+            transform: translateY(0);
+        }
+        
+        .controls-instructions {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 16px 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+            font-size: 13px;
+            color: #555;
+            max-width: 300px;
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+        }
+        
+        .controls-instructions h4 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            color: #333;
+            font-weight: 600;
+        }
+        
+        .controls-instructions p {
+            margin: 4px 0;
+            line-height: 1.5;
+        }
+        
+        .controls-instructions kbd {
+            background: #f0f0f0;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 11px;
+            border: 1px solid #ddd;
+        }
+        
+        .url-input-group {
+            margin-bottom: 18px;
+        }
+        
+        .url-input-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+            font-size: 13px;
+            color: #333;
+        }
+        
+        .url-input-group input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 13px;
+            transition: border-color 0.2s;
+            font-family: inherit;
+        }
+        
+        .url-input-group input:focus {
+            outline: none;
+            border-color: #0066cc;
+        }
+        
+        #update-btn {
+            width: 100%;
+            padding: 12px;
+            background: #000;
+            color: white;
+            border: none;
             border-radius: 8px;
             cursor: pointer;
             font-size: 14px;
-            font-weight: bold;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            transition: background 0.2s;
-            z-index: 1000;
-        }
-        #toggle-btn:hover {
-            background: rgba(240, 240, 240, 0.95);
-        }
-        .url-input-group {
-            margin-bottom: 15px;
-        }
-        .url-input-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-            font-size: 13px;
-            color: #333;
-        }
-        .url-input-group input {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            font-size: 13px;
-            box-sizing: border-box;
-        }
-        .url-input-group input:focus {
-            outline: none;
-            border-color: #4CAF50;
-        }
-        #update-btn {
-            width: 100%;
-            padding: 10px;
-            background: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: bold;
+            font-weight: 600;
             margin-top: 10px;
+            transition: all 0.2s;
         }
+        
         #update-btn:hover {
-            background: #45a049;
+            background: #222;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
         }
+        
+        #update-btn:active {
+            transform: translateY(0);
+        }
+        
         h3 {
             margin-top: 0;
-            margin-bottom: 15px;
+            margin-bottom: 18px;
             color: #333;
-            font-size: 16px;
+            font-size: 18px;
+            font-weight: 700;
         }
+        
         .hint {
             font-size: 11px;
-            color: #666;
-            margin-top: 4px;
+            color: #888;
+            margin-top: 5px;
+            line-height: 1.4;
+        }
+        
+        #reset-camera-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            border: none;
+            padding: 12px 18px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+            transition: all 0.2s;
+            z-index: 1000;
+            color: #333;
+        }
+        
+        #reset-camera-btn:hover {
+            background: rgba(240, 240, 240, 0.95);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
         }
     </style>
 </head>
@@ -108,7 +228,16 @@
     <div id="container"></div>
     <div id="blocker"></div>
     
-    <button id="toggle-btn">⚙️ Settings</button>
+    <button id="toggle-btn">Settings</button>
+    <button id="reset-camera-btn">Reset View</button>
+    
+    <div class="controls-instructions">
+        <h4>Camera Controls</h4>
+        <p><kbd>Left Click + Drag</kbd> Rotate</p>
+        <p><kbd>Right Click + Drag</kbd> Pan</p>
+        <p><kbd>Scroll</kbd> Zoom In/Out</p>
+        <p><kbd>Double Click</kbd> Auto-Rotate</p>
+    </div>
     
     <div id="controls-panel" class="hidden">
         <h3>Video URLs</h3>
@@ -145,12 +274,13 @@
     </script>
     <script type="module">
         import * as THREE from 'three';
-        import { TrackballControls } from 'three/addons/controls/TrackballControls.js';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         import { CSS3DRenderer, CSS3DObject } from 'three/addons/renderers/CSS3DRenderer.js';
 
         let camera, scene, renderer, controls;
         let group;
         let videoObjects = [];
+        let autoRotate = false;
 
         // Default video IDs
         const defaultVideos = {
@@ -164,15 +294,12 @@
         function extractVideoId(input) {
             if (!input) return '';
             
-            // Remove whitespace
             input = input.trim();
             
-            // If it's already just an ID (11 characters, alphanumeric with dash/underscore)
             if (/^[a-zA-Z0-9_-]{11}$/.test(input)) {
                 return input;
             }
             
-            // Try to extract from various YouTube URL formats
             const patterns = [
                 /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
                 /^.*(?:youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=)([^#\&\?]*).*/
@@ -185,7 +312,7 @@
                 }
             }
             
-            return input; // Return as-is if no pattern matches
+            return input;
         }
 
         function createElement(id, x, y, z, ry) {
@@ -193,6 +320,7 @@
             div.style.width = '480px';
             div.style.height = '360px';
             div.style.backgroundColor = '#000';
+            div.style.boxShadow = '0 8px 32px rgba(0, 0, 0, 0.3)';
 
             const iframe = document.createElement('iframe');
             iframe.style.width = '480px';
@@ -216,11 +344,9 @@
                 left: extractVideoId(document.getElementById('url-left').value) || defaultVideos.left
             };
 
-            // Remove old objects
             videoObjects.forEach(obj => group.remove(obj));
             videoObjects = [];
 
-            // Create new objects
             videoObjects.push(createElement(videos.front, 0, 0, 240, 0));
             videoObjects.push(createElement(videos.right, 240, 0, 0, Math.PI / 2));
             videoObjects.push(createElement(videos.back, 0, 0, -240, Math.PI));
@@ -229,14 +355,23 @@
             videoObjects.forEach(obj => group.add(obj));
         }
 
+        function resetCamera() {
+            camera.position.set(500, 350, 750);
+            controls.target.set(0, 0, 0);
+            controls.update();
+            autoRotate = false;
+        }
+
         function init() {
             const container = document.getElementById('container');
 
-            camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1, 5000);
+            // Camera setup with better FOV
+            camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 1, 5000);
             camera.position.set(500, 350, 750);
 
             scene = new THREE.Scene();
 
+            // Renderer
             renderer = new CSS3DRenderer();
             renderer.setSize(window.innerWidth, window.innerHeight);
             container.appendChild(renderer.domElement);
@@ -251,8 +386,17 @@
             document.getElementById('url-left').value = defaultVideos.left;
             updateVideos();
 
-            controls = new TrackballControls(camera, renderer.domElement);
-            controls.rotateSpeed = 4;
+            // Enhanced OrbitControls
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.rotateSpeed = 0.7;
+            controls.zoomSpeed = 1.2;
+            controls.panSpeed = 0.8;
+            controls.minDistance = 400;
+            controls.maxDistance = 2000;
+            controls.enablePan = true;
+            controls.target.set(0, 0, 0);
 
             window.addEventListener('resize', onWindowResize);
 
@@ -269,14 +413,24 @@
             const toggleBtn = document.getElementById('toggle-btn');
             const controlsPanel = document.getElementById('controls-panel');
             const updateBtn = document.getElementById('update-btn');
+            const resetCameraBtn = document.getElementById('reset-camera-btn');
 
             toggleBtn.addEventListener('click', () => {
                 controlsPanel.classList.toggle('hidden');
-                toggleBtn.textContent = controlsPanel.classList.contains('hidden') ? '⚙️ Settings' : '✕ Close';
+                toggleBtn.textContent = controlsPanel.classList.contains('hidden') ? 'Settings' : 'Close';
             });
 
             updateBtn.addEventListener('click', () => {
                 updateVideos();
+            });
+
+            resetCameraBtn.addEventListener('click', () => {
+                resetCamera();
+            });
+
+            // Double-click to toggle auto-rotate
+            renderer.domElement.addEventListener('dblclick', () => {
+                autoRotate = !autoRotate;
             });
 
             // Allow Enter key to update
@@ -297,6 +451,11 @@
 
         function animate() {
             requestAnimationFrame(animate);
+            
+            if (autoRotate) {
+                group.rotation.y += 0.003;
+            }
+            
             controls.update();
             renderer.render(scene, camera);
         }
