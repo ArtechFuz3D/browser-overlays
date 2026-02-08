@@ -143,7 +143,7 @@ void main()
 
   vec3 cw=normalize(vec3(0)-ro);
   vec3 cu=normalize(cross(cw,normalize(vec3(0,1,0))));
-  vec3 cv=normalize(cross(cu,cw)));
+  vec3 cv=normalize(cross(cu,cw));
   vec3 rd=mat3(cu,cv,cw)*normalize(vec3(uv,.5));
 
   vec3 co,fo;
