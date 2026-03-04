@@ -234,8 +234,8 @@ class CategoryEffects {
         const links = category.querySelectorAll('.link-card');
         links.forEach((link, index) => {
             setTimeout(() => {
-                link.style.transform = 'translateX(4px)';
-            }, index * 50);
+                link.style.transform = 'translateX(0px)';
+            }, index * 550);
         });
     }
     
