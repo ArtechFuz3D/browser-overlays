@@ -349,7 +349,7 @@ body {
 }
 
 .category:hover .category-icon {
-    transform: scale(1.1) rotate(15deg);
+    transform: scale(1.1) rotate(5deg);
 }
 
 .category-icon svg {
@@ -425,18 +425,18 @@ body {
     width: 100%;
     height: 100%;
     background: linear-gradient(90deg, transparent, rgba(102, 126, 234, 0.1), transparent);
-    transition: left 0.5s ease;
+    transition: left 1s ease;
 }
 
 .link-card:hover::before {
-    left: 100%;
+    left: -90%;
 }
 
 .link-card:hover {
     background: rgba(255, 255, 255, 0.08);
     border-color: rgba(102, 126, 234, 0.4);
-    transform: translateX(0px);
-    box-shadow: 0 8px 24px rgba(102, 126, 234, 0.15);
+    /* transform: translateX(0px); */
+    box-shadow: 0 2px 2px rgba(102, 126, 234, 0.15);
 }
 
 .link-icon {
@@ -452,9 +452,9 @@ body {
     transition: transform var(--transition-base);
 }
 
-.link-card:hover .link-icon {
+/* .link-card:hover .link-icon {
     transform: scale(1);
-}
+} */
 
 .link-content {
     flex: 1;
@@ -482,7 +482,7 @@ body {
 }
 
 .link-card:hover .link-arrow {
-    transform: translateX(4px);
+    /* transform: translateX(4px); */
 }
 
 /* ============================================
