@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Milky Way Galaxy</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#000; overflow:hidden; }
+  canvas { position:fixed; inset:0; z-index:1; display:block; }
+
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap');
+
+  /* ── HEADER ── */
+  .hdr {
+    position:fixed; top:0; left:0; right:0; z-index:20;
+    padding:16px 28px;
+    background:linear-gradient(180deg,rgba(0,0,0,.82) 0%,transparent 100%);
+    display:flex; align-items:center; justify-content:space-between;
+    pointer-events:none;
+    font-family:'Share Tech Mono','Courier New',monospace;
+  }
+  .hdr h1 {
+    font-family:'Orbitron',sans-serif;
+    font-size:clamp(13px,1.8vw,20px); font-weight:900; letter-spacing:.28em; color:#fff;
+    text-shadow:0 0 28px rgba(80,160,220,.9),0 0 55px rgba(40,100,180,.4);
+  }
+  .hdr p { font-size:9px; letter-spacing:.18em; color:rgba(140,190,220,.4); margin-top:3px; }
+  .live { display:flex; align-items:center; gap:7px; font-family:'Orbitron',sans-serif; font-size:9px; letter-spacing:.2em; color:rgba(80,255,150,.65); }
+  .live-dot { width:6px;height:6px;border-radius:50%;background:#3fffa0;animation:blink 2s ease-in-out infinite; }
+  @keyframes blink{0%,100%{opacity:1;box-shadow:0 0 7px #3fffa0}50%{opacity:.2;box-shadow:none}}
+
+  /* ── INFO CARDS ── */
+  .card {
+    position:fixed; z-index:20;
+    background:rgba(2,6,14,.82);
+    border:1px solid rgba(60,120,180,.2);
+    backdrop-filter:blur(16px); border-radius:4px;
+    padding:14px 18px;
+    font-family:'Share Tech Mono','Courier New',monospace; color:#a8c8e0;
+    pointer-events:none;
+    animation:cfloat 7s ease-in-out infinite;
+    box-shadow:0 0 40px rgba(20,60,120,.12), inset 0 1px 0 rgba(60,140,200,.06);
+  }
+  .card::before{content:'';position:absolute;top:-1px;left:15%;right:15%;height:1px;background:linear-gradient(90deg,transparent,rgba(60,150,220,.35),transparent);}
+  @keyframes cfloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+  .ct{font-family:'Orbitron',sans-serif;font-size:8px;letter-spacing:.28em;color:rgba(80,160,220,.55);margin-bottom:8px;text-transform:uppercase;}
+  .cv{font-family:'Orbitron',sans-serif;font-size:22px;font-weight:700;color:#fff;line-height:1;text-shadow:0 0 18px rgba(60,140,220,.45);}
+  .cu{font-size:9px;color:rgba(100,170,220,.38);margin-top:3px;letter-spacing:.1em;}
+  .cn{font-size:9px;color:rgba(110,170,210,.3);margin-top:8px;padding-top:8px;border-top:1px solid rgba(40,100,180,.15);line-height:1.6;}
+
+  .legend-row{display:flex;align-items:center;gap:9px;margin-bottom:5px;}
+  .legend-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+  .legend-lbl{font-size:8px;color:rgba(140,185,215,.45);letter-spacing:.06em;}
+
+  .br{display:flex;align-items:center;gap:7px;margin-bottom:5px;}
+  .bl{font-size:8px;color:rgba(110,170,210,.42);width:76px;flex-shrink:0;}
+  .bt{flex:1;height:3px;background:rgba(255,255,255,.05);border-radius:2px;overflow:hidden;}
+  .bf{height:100%;border-radius:2px;animation:grow 2s cubic-bezier(.4,0,.2,1) both;transform-origin:left;}
+  @keyframes grow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+  .bv{font-size:8px;color:rgba(255,255,255,.3);width:26px;text-align:right;flex-shrink:0;}
+
+  #c1{top:90px; left:28px; animation-delay:0s;   min-width:185px;}
+  #c2{top:90px; right:28px;animation-delay:1.8s; min-width:246px;}
+  #c3{bottom:64px;left:28px;animation-delay:.9s; min-width:236px;}
+  #c4{bottom:64px;right:28px;animation-delay:2.4s;min-width:192px;}
+
+  /* ── FOOTER ── */
+  .ftr{
+    position:fixed;bottom:0;left:0;right:0;z-index:20;
+    padding:10px 28px;
+    background:linear-gradient(0deg,rgba(0,0,0,.82) 0%,transparent 100%);
+    display:flex;justify-content:space-between;align-items:center;
+    pointer-events:none; font-family:'Share Tech Mono','Courier New',monospace;
+  }
+  .fi{font-size:8px;letter-spacing:.12em;color:rgba(70,130,190,.32);display:flex;align-items:center;gap:6px;}
+  .fi::before{content:'';width:3px;height:3px;border-radius:50%;background:currentColor;flex-shrink:0;}
+
+  /* ── PLAYBACK CONTROLS ── */
+  .ctrl{position:fixed;right:24px;top:50%;transform:translateY(-50%);z-index:20;display:flex;flex-direction:column;gap:7px;}
+  .cb{
+    width:34px;height:34px;
+    border:1px solid rgba(50,110,180,.22);
+    background:rgba(2,6,14,.78);color:rgba(80,160,220,.65);
+    border-radius:3px;cursor:pointer;font-size:12px;
+    display:flex;align-items:center;justify-content:center;
+    transition:all .2s;backdrop-filter:blur(8px);
+    font-family:'Orbitron',sans-serif;pointer-events:all;
+  }
+  .cb:hover{border-color:rgba(80,160,220,.5);color:#fff;background:rgba(10,30,70,.55);box-shadow:0 0 14px rgba(50,120,200,.25);}
+  .cb.on{border-color:rgba(80,255,140,.4);color:rgba(80,255,140,.8);}
+
+  /* ══════════════════════════════════════
+     GALAXY PARAMS PANEL
+  ══════════════════════════════════════ */
+  #params-panel {
+    position:fixed;
+    left:0; top:50%; transform:translateY(-50%);
+    z-index:25;
+    width:260px;
+    background:rgba(2,5,14,.88);
+    border:1px solid rgba(50,110,180,.25);
+    border-left:none;
+    border-radius:0 6px 6px 0;
+    backdrop-filter:blur(20px);
+    box-shadow:4px 0 40px rgba(20,60,150,.18), inset -1px 0 0 rgba(60,140,220,.06);
+    font-family:'Share Tech Mono','Courier New',monospace;
+    transition:transform .35s cubic-bezier(.4,0,.2,1);
+    pointer-events:all;
+  }
+  #params-panel.collapsed {
+    transform:translateY(-50%) translateX(-240px);
+  }
+
+  /* top accent line */
+  #params-panel::before {
+    content:'';position:absolute;top:-1px;left:20%;right:20%;height:1px;
+    background:linear-gradient(90deg,transparent,rgba(60,150,220,.4),transparent);
+  }
+
+  .panel-header {
+    display:flex;align-items:center;justify-content:space-between;
+    padding:12px 14px 10px;
+    border-bottom:1px solid rgba(50,110,180,.15);
+  }
+  .panel-title {
+    font-family:'Orbitron',sans-serif;font-size:8px;letter-spacing:.28em;
+    color:rgba(80,160,220,.7);text-transform:uppercase;
+  }
+  .panel-toggle {
+    width:22px;height:22px;border:1px solid rgba(60,120,200,.3);
+    background:rgba(10,20,50,.6);color:rgba(80,160,220,.7);
+    border-radius:3px;cursor:pointer;font-size:10px;
+    display:flex;align-items:center;justify-content:center;
+    transition:all .2s;flex-shrink:0;
+  }
+  .panel-toggle:hover{border-color:rgba(80,160,220,.5);color:#fff;background:rgba(20,50,120,.5);}
+
+  .panel-body { padding:10px 14px 14px; }
+
+  /* section label */
+  .sec-label {
+    font-family:'Orbitron',sans-serif;font-size:7px;letter-spacing:.25em;
+    color:rgba(60,130,180,.45);text-transform:uppercase;
+    margin:10px 0 6px;padding-bottom:4px;
+    border-bottom:1px solid rgba(40,90,160,.12);
+  }
+  .sec-label:first-child{margin-top:2px;}
+
+  /* slider row */
+  .sl-row {
+    display:flex;align-items:center;gap:8px;
+    margin-bottom:8px;
+  }
+  .sl-label {
+    font-size:8px;color:rgba(130,175,215,.5);
+    width:88px;flex-shrink:0;letter-spacing:.04em;line-height:1.3;
+  }
+  .sl-wrap {
+    flex:1;position:relative;
+    display:flex;align-items:center;
+  }
+  input[type=range] {
+    -webkit-appearance:none;
+    width:100%;height:3px;
+    background:rgba(255,255,255,.08);
+    border-radius:2px;outline:none;cursor:pointer;
+    position:relative;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance:none;
+    width:11px;height:11px;border-radius:50%;
+    background:#3a9ab5;
+    border:1px solid rgba(80,180,220,.6);
+    box-shadow:0 0 6px rgba(40,160,200,.5);
+    cursor:pointer;
+    transition:transform .15s, box-shadow .15s;
+  }
+  input[type=range]::-webkit-slider-thumb:hover {
+    transform:scale(1.3);
+    box-shadow:0 0 10px rgba(40,160,220,.8);
+  }
+  input[type=range]::-moz-range-thumb {
+    width:11px;height:11px;border-radius:50%;
+    background:#3a9ab5;border:1px solid rgba(80,180,220,.6);
+    cursor:pointer;
+  }
+  /* filled track using JS + CSS variable */
+  input[type=range] {
+    background: linear-gradient(
+      to right,
+      rgba(40,140,200,.55) 0%,
+      rgba(40,140,200,.55) var(--val,50%),
+      rgba(255,255,255,.07) var(--val,50%),
+      rgba(255,255,255,.07) 100%
+    );
+  }
+  .sl-val {
+    font-family:'Orbitron',sans-serif;font-size:8px;
+    color:rgba(100,180,220,.7);
+    width:30px;text-align:right;flex-shrink:0;letter-spacing:.03em;
+  }
+
+  /* colour swatch row */
+  .swatch-row {
+    display:flex;gap:5px;margin-bottom:8px;
+  }
+  .swatch {
+    flex:1;height:20px;border-radius:3px;cursor:pointer;
+    border:1px solid transparent;
+    transition:border-color .15s, transform .12s;
+    position:relative;
+  }
+  .swatch:hover{transform:scaleY(1.15);}
+  .swatch.active{border-color:#fff;box-shadow:0 0 8px rgba(255,255,255,.35);}
+  .swatch-label{font-size:7px;color:rgba(130,175,215,.4);text-align:center;letter-spacing:.06em;margin-bottom:4px;}
+
+  /* reset button */
+  .reset-btn {
+    width:100%;margin-top:10px;padding:7px;
+    background:rgba(20,50,100,.4);
+    border:1px solid rgba(50,110,180,.25);
+    border-radius:3px;color:rgba(80,160,220,.6);
+    font-family:'Orbitron',sans-serif;font-size:8px;letter-spacing:.2em;
+    cursor:pointer;transition:all .2s;text-transform:uppercase;
+  }
+  .reset-btn:hover{background:rgba(30,70,150,.5);border-color:rgba(80,160,220,.4);color:#fff;}
+
+  /* tab expand handle on right edge */
+  #panel-tab {
+    position:absolute;right:-28px;top:50%;transform:translateY(-50%);
+    width:28px;height:56px;
+    background:rgba(2,6,14,.85);
+    border:1px solid rgba(50,110,180,.25);border-left:none;
+    border-radius:0 5px 5px 0;
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;
+    writing-mode:vertical-lr;
+    font-family:'Orbitron',sans-serif;font-size:7px;letter-spacing:.2em;
+    color:rgba(80,160,220,.55);
+    transition:color .2s,background .2s;
+    pointer-events:all;
+    user-select:none;
+  }
+  #panel-tab:hover{background:rgba(10,25,60,.9);color:rgba(80,160,220,.9);}
+  #panel-tab::before {
+    content:'';position:absolute;right:-1px;top:20%;bottom:20%;width:1px;
+    background:linear-gradient(180deg,transparent,rgba(60,150,220,.4),transparent);
+  }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="hdr">
+  <div>
+    <h1>MILKY WAY</h1>
+    <p>BARRED SPIRAL · SBbc · SOLAR NEIGHBORHOOD · LOCAL GROUP</p>
+  </div>
+  <div class="live"><div class="live-dot"></div>LIVE RENDER</div>
+</div>
+
+<!-- Info Cards -->
+<div class="card" id="c1">
+  <div class="ct">Stellar Census</div>
+  <div class="cv">~250B</div>
+  <div class="cu">ESTIMATED STARS</div>
+  <div class="cn">100–400 billion total<br>~70% red dwarfs · ~3 M☉/yr formed</div>
+</div>
+
+<div class="card" id="c2">
+  <div class="ct">Spectral Composition</div>
+  <div class="legend-row"><div class="legend-dot" style="background:#f0c090;box-shadow:0 0 5px #f0c09066"></div><span class="legend-lbl">Central Bulge — Population II stars (K/G)</span></div>
+  <div class="legend-row"><div class="legend-dot" style="background:#50b8c8;box-shadow:0 0 5px #50b8c855"></div><span class="legend-lbl">Spiral Arms — OB stars, teal disc gas</span></div>
+  <div class="legend-row"><div class="legend-dot" style="background:#ff3a6a;box-shadow:0 0 5px #ff3a6a55"></div><span class="legend-lbl">HII Regions — ionised hydrogen Hα 656nm</span></div>
+  <div class="legend-row"><div class="legend-dot" style="background:#1a3a50;"></div><span class="legend-lbl">Dust Lanes — silicate & carbon absorption</span></div>
+  <div class="legend-row"><div class="legend-dot" style="background:#40e8c0;box-shadow:0 0 5px #40e8c044"></div><span class="legend-lbl">Diffuse — OIII 501nm, outer disc haze</span></div>
+</div>
+
+<div class="card" id="c3">
+  <div class="ct">Physical Scale</div>
+  <div style="display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap">
+    <div><div class="cv" style="font-size:18px">105 kly</div><div class="cu">DIAMETER</div></div>
+    <div style="width:1px;height:26px;background:rgba(40,100,180,.18)"></div>
+    <div><div class="cv" style="font-size:18px">13.6 Gyr</div><div class="cu">AGE</div></div>
+    <div style="width:1px;height:26px;background:rgba(40,100,180,.18)"></div>
+    <div><div class="cv" style="font-size:18px">1.5T M☉</div><div class="cu">MASS</div></div>
+  </div>
+  <div class="cn">Dark matter halo ~650 kly · Disk thickness ~1–3.5 kly</div>
+</div>
+
+<div class="card" id="c4">
+  <div class="ct">Major Arms</div>
+  <div class="br"><span class="bl">Scutum-C.</span><div class="bt"><div class="bf" style="width:92%;background:linear-gradient(90deg,#1a4060,#40a0d0);animation-delay:.1s"></div></div><span class="bv">Major</span></div>
+  <div class="br"><span class="bl">Perseus</span><div class="bt"><div class="bf" style="width:85%;background:linear-gradient(90deg,#1a3080,#3060c0);animation-delay:.25s"></div></div><span class="bv">Major</span></div>
+  <div class="br"><span class="bl">Sagittarius</span><div class="bt"><div class="bf" style="width:80%;background:linear-gradient(90deg,#204060,#3090a0);animation-delay:.4s"></div></div><span class="bv">Major</span></div>
+  <div class="br"><span class="bl">Norma</span><div class="bt"><div class="bf" style="width:74%;background:linear-gradient(90deg,#302060,#6050a0);animation-delay:.55s"></div></div><span class="bv">Major</span></div>
+  <div class="br"><span class="bl">Orion Spur</span><div class="bt"><div class="bf" style="width:40%;background:linear-gradient(90deg,#206040,#40c080);animation-delay:.7s"></div></div><span class="bv">☉</span></div>
+</div>
+
+<!-- Footer -->
+<div class="ftr">
+  <div style="display:flex;gap:18px">
+    <div class="fi">ROTATION: 225–250 MYR</div>
+    <div class="fi">VELOCITY: 828 KM/S vs CMB</div>
+    <div class="fi">Sgr A*: 4.1×10⁶ M☉</div>
+  </div>
+  <div class="fi">SCROLL = SPEED</div>
+</div>
+
+<!-- Playback controls -->
+<div class="ctrl">
+  <button class="cb on" id="btn-play">▶</button>
+  <button class="cb" id="btn-speed" title="Speed: 1×">⚡</button>
+</div>
+
+<!-- ═══ GALAXY PARAMS PANEL ═══ -->
+<div id="params-panel" class="collapsed">
+  <div id="panel-tab">PARAMS</div>
+
+  <div class="panel-header">
+    <span class="panel-title">Galaxy Parameters</span>
+    <button class="panel-toggle" id="panel-close">✕</button>
+  </div>
+
+  <div class="panel-body">
+
+    <!-- STRUCTURE -->
+    <div class="sec-label">Structure</div>
+
+    <div class="sl-row">
+      <span class="sl-label">Arm Twist</span>
+      <div class="sl-wrap">
+        <input type="range" id="sl-twist" min="0.55" max="0.78" step="0.005" value="0.659">
+      </div>
+      <span class="sl-val" id="vl-twist">0.659</span>
+    </div>
+
+    <div class="sl-row">
+      <span class="sl-label">Arm Density</span>
+      <div class="sl-wrap">
+        <input type="range" id="sl-armden" min="0.5" max="2.5" step="0.05" value="1.6">
+      </div>
+      <span class="sl-val" id="vl-armden">1.6</span>
+    </div>
+
+    <div class="sl-row">
+      <span class="sl-label">Arm Width</span>
+      <div class="sl-wrap">
+        <input type="range" id="sl-armw" min="0.5" max="2.0" step="0.05" value="1.0">
+      </div>
+      <span class="sl-val" id="vl-armw">1.0</span>
+    </div>
+
+    <div class="sl-row">
+      <span class="sl-label">Iterations</span>
+      <div class="sl-wrap">
+        <input type="range" id="sl-iter" min="4" max="8" step="1" value="8">
+      </div>
+      <span class="sl-val" id="vl-iter">8</span>
+    </div>
+
+    <!-- CORE -->
+    <div class="sec-label">Core & Bulge</div>
+
+    <div class="sl-row">
+      <span class="sl-label">Core Brightness</span>
+      <div class="sl-wrap">
+        <input type="range" id="sl-core" min="0.5" max="4.0" step="0.1" value="2.5">
+      </div>
+      <span class="sl-val" id="vl-core">2.5</span>
+    </div>
+
+    <div class="sl-row">
+      <span class="sl-label">Bulge Size</span>
+      <div class="sl-wrap">
+        <input type="range" id="sl-bulge" min="0.05" max="0.5" step="0.01" value="0.32">
+      </div>
+      <span class="sl-val" id="vl-bulge">0.32</span>
+    </div>
+
+    <div class="sl-row">
+      <span class="sl-label">Bulge Warmth</span>
+      <div class="sl-wrap">
+        <input type="range" id="sl-bwarm" min="0.0" max="1.0" step="0.02" value="0.48">
+      </div>
+      <span class="sl-val" id="vl-bwarm">0.48</span>
+    </div>
+
+    <!-- EMISSION -->
+    <div class="sec-label">Emission & Gas</div>
+
+    <div class="sl-row">
+      <span class="sl-label">Arm Teal</span>
+      <div class="sl-wrap">
+        <input type="range" id="sl-teal" min="0.0" max="2.0" step="0.05" value="1.0">
+      </div>
+      <span class="sl-val" id="vl-teal">1.0</span>
+    </div>
+
+    <div class="sl-row">
+      <span class="sl-label">HII Intensity</span>
+      <div class="sl-wrap">
+        <input type="range" id="sl-hii" min="0.0" max="2.0" step="0.05" value="0.75">
+      </div>
+      <span class="sl-val" id="vl-hii">0.75</span>
+    </div>
+
+    <div class="sl-row">
+      <span class="sl-label">HII Threshold</span>
+      <div class="sl-wrap">
+        <input type="range" id="sl-hiit" min="0.2" max="0.9" step="0.02" value="0.52">
+      </div>
+      <span class="sl-val" id="vl-hiit">0.52</span>
+    </div>
+
+    <div class="sl-row">
+      <span class="sl-label">Outer Halo</span>
+      <div class="sl-wrap">
+        <input type="range" id="sl-halo" min="0.0" max="1.0" step="0.02" value="0.35">
+      </div>
+      <span class="sl-val" id="vl-halo">0.35</span>
+    </div>
+
+    <!-- DUST & EXPOSURE -->
+    <div class="sec-label">Dust & Exposure</div>
+
+    <div class="sl-row">
+      <span class="sl-label">Dust Opacity</span>
+      <div class="sl-wrap">
+        <input type="range" id="sl-dust" min="0.0" max="1.0" step="0.02" value="0.55">
+      </div>
+      <span class="sl-val" id="vl-dust">0.55</span>
+    </div>
+
+    <div class="sl-row">
+      <span class="sl-label">Exposure</span>
+      <div class="sl-wrap">
+        <input type="range" id="sl-exp" min="0.5" max="3.0" step="0.05" value="1.0">
+      </div>
+      <span class="sl-val" id="vl-exp">1.0</span>
+    </div>
+
+    <div class="sl-row">
+      <span class="sl-label">Gamma</span>
+      <div class="sl-wrap">
+        <input type="range" id="sl-gamma" min="0.6" max="2.0" step="0.05" value="1.15">
+      </div>
+      <span class="sl-val" id="vl-gamma">1.15</span>
+    </div>
+
+    <!-- ARM COLOUR PRESETS -->
+    <div class="sec-label">Arm Colour Preset</div>
+    <div class="swatch-label">click to apply</div>
+    <div class="swatch-row" id="swatches">
+      <div class="swatch active" data-preset="mw"    style="background:linear-gradient(135deg,#1a6070,#3a9ab5)" title="Milky Way"></div>
+      <div class="swatch"        data-preset="blue"  style="background:linear-gradient(135deg,#1a3080,#4080e0)" title="Blue Giant"></div>
+      <div class="swatch"        data-preset="red"   style="background:linear-gradient(135deg,#601020,#c03050)" title="Red Nebula"></div>
+      <div class="swatch"        data-preset="gold"  style="background:linear-gradient(135deg,#704010,#d09030)" title="Golden Core"></div>
+      <div class="swatch"        data-preset="void"  style="background:linear-gradient(135deg,#080410,#201840)" title="Dark Matter"></div>
+    </div>
+
+    <button class="reset-btn" id="btn-reset">↺  Reset Defaults</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ─────────────────────────────────────────────────────
+   DEFAULTS — mirrors every slider's default value
+───────────────────────────────────────────────────── */
+const DEFAULTS = {
+  twist:  0.659, armden: 1.6,   armw:  1.0,  iter:  8,
+  core:   2.5,   bulge:  0.32,  bwarm: 0.48,
+  teal:   1.0,   hii:    0.75,  hiit:  0.52, halo: 0.35,
+  dust:   0.55,  exp:    1.0,   gamma: 1.15,
+  // arm colour rgb (overridden by presets)
+  armR: 0.20, armG: 0.62, armB: 0.72,
+  ridgeR: 0.28, ridgeG: 0.52, ridgeB: 0.82,
+};
+
+const PRESETS = {
+  mw:   { armR:0.20, armG:0.62, armB:0.72,  ridgeR:0.28, ridgeG:0.52, ridgeB:0.82 },
+  blue: { armR:0.18, armG:0.38, armB:0.95,  ridgeR:0.30, ridgeG:0.55, ridgeB:1.00 },
+  red:  { armR:0.75, armG:0.18, armB:0.22,  ridgeR:0.90, ridgeG:0.30, ridgeB:0.25 },
+  gold: { armR:0.80, armG:0.60, armB:0.12,  ridgeR:0.95, ridgeG:0.75, ridgeB:0.20 },
+  void: { armR:0.22, armG:0.15, armB:0.55,  ridgeR:0.35, ridgeG:0.20, ridgeB:0.80 },
+};
+
+let P = { ...DEFAULTS };
+
+/* ─────────────────────────────────────────────────────
+   THREE.JS SETUP
+───────────────────────────────────────────────────── */
+const W = window.innerWidth, H = window.innerHeight;
+const renderer = new THREE.WebGLRenderer({ antialias: false });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(W, H);
+renderer.autoClear = false;
+document.body.appendChild(renderer.domElement);
+
+const VERT = `varying vec2 vUv; void main(){ vUv=uv; gl_Position=vec4(position,1.0); }`;
+
+/* ── LAYER 1: original unmodified ── */
+const FRAG_L1 = `
+  precision highp float;
+  varying vec2 vUv;
+  uniform float iTime;
+  uniform vec3  iResolution;
+  void main(){
+    vec2 fragCoord = vUv * iResolution.xy;
+    vec2 uv = (fragCoord / iResolution.xy) - .5;
+    float t = iTime * .1 + ((.25 + .05 * sin(iTime * .1))/(length(uv.xy) + .07)) * 2.2;
+    float si = sin(t); float co = cos(t);
+    mat2 ma = mat2(co, si, -si, co);
+    float v1, v2, v3;
+    v1 = v2 = v3 = 0.0;
+    float s = 0.0;
+    for(int i = 0; i < 90; i++){
+      vec3 p = s * vec3(uv, 0.0);
+      p.xy *= ma;
+      p += vec3(.22, .3, s - 1.5 - sin(iTime * .13) * .1);
+      for(int j = 0; j < 8; j++) p = abs(p)/dot(p,p) - 0.659;
+      v1 += dot(p,p) * .0015 * (1.8 + sin(length(uv.xy * 13.0) + .5  - iTime * .2));
+      v2 += dot(p,p) * .0013 * (1.5 + sin(length(uv.xy * 14.5) + 1.2 - iTime * .3));
+      v3 += length(p.xy*10.) * .0003;
+      s  += .035;
+    }
+    float len = length(uv);
+    v1 *= smoothstep(.7, .0, len);
+    v2 *= smoothstep(.5, .0, len);
+    v3 *= smoothstep(.9, .0, len);
+    vec3 col = vec3( v3 * (1.5 + sin(iTime * .2) * .4),
+                    (v1 + v3) * .3,
+                     v2) + smoothstep(0.2, .0, len) * .85 + smoothstep(.0, .6, v3) * .3;
+    gl_FragColor = vec4(min(pow(abs(col), vec3(1.2)), 1.0), 1.0);
+  }
+`;
+
+/* ── LAYER 2: MW-accurate, fully parameterised ── */
+const FRAG_L2 = `
+  precision highp float;
+  varying vec2 vUv;
+  uniform float iTime;
+  uniform vec3  iResolution;
+
+  /* structure */
+  uniform float uTwist;     /* IFS folding constant (default 0.659) */
+  uniform float uArmDen;    /* arm accumulator weight */
+  uniform float uArmWidth;  /* arm envelope scale */
+  uniform int   uIter;      /* inner IFS iterations */
+
+  /* core/bulge */
+  uniform float uCoreBright;
+  uniform float uBulgeSize;
+  uniform float uBulgeWarm; /* 0=white, 1=deep amber */
+
+  /* emission */
+  uniform float uTealAmt;
+  uniform float uHIIInt;
+  uniform float uHIIThresh;
+  uniform float uHaloAmt;
+
+  /* dust & post */
+  uniform float uDustAmt;
+  uniform float uExposure;
+  uniform float uGamma;
+
+  /* arm colour */
+  uniform vec3  uArmCol;    /* teal/main arm colour */
+  uniform vec3  uRidgeCol;  /* arm ridge accent colour */
+
+  void main(){
+    vec2 fragCoord = vUv * iResolution.xy;
+    vec2 uv = (fragCoord / iResolution.xy) - .5;
+
+    float t = iTime * .1 + ((.25 + .05 * sin(iTime * .1))/(length(uv.xy) + .07)) * 2.2;
+    float si = sin(t); float co = cos(t);
+    mat2 ma = mat2(co, si, -si, co);
+
+    float v1, v2, v3;
+    v1 = v2 = v3 = 0.0;
+
+    float s = 0.0;
+    for(int i = 0; i < 90; i++){
+      vec3 p = s * vec3(uv, 0.0) * uArmWidth;
+      p.xy *= ma;
+      p += vec3(.22, .3, s - 1.5 - sin(iTime * .13) * .1);
+      /* parameterised iteration count */
+      for(int j = 0; j < 8; j++){
+        if(j >= uIter) break;
+        p = abs(p)/dot(p,p) - uTwist;
+      }
+      v1 += dot(p,p) * .0015 * (1.8 + sin(length(uv.xy * 13.0) + .5));
+      v2 += dot(p,p) * .0013 * uArmDen * (1.5 + sin(length(uv.xy * 14.5) + 1.2));
+      v3 += length(p.xy*10.) * .0003;
+      s  += .035;
+    }
+
+    float len = length(uv);
+    v1 *= smoothstep(.7,  .0, len);
+    v2 *= smoothstep(.5,  .0, len);
+    v3 *= smoothstep(.9,  .0, len);
+
+    /* radial zones */
+    float zCore  = smoothstep(0.10, 0.0,  len);
+    float zBulge = smoothstep(uBulgeSize, 0.02, len);
+    float zDisc  = smoothstep(0.05, 0.5, len) * smoothstep(1.0, 0.35, len);
+    float zOuter = smoothstep(0.4, 0.9, len)  * smoothstep(1.05, 0.55, len);
+
+    /* bulge colour interpolated by warmth param */
+    vec3 cBulgeInner = mix(vec3(1.00, 0.95, 0.90), vec3(1.00, 0.85, 0.55), uBulgeWarm);
+    vec3 cBulgeOuter = mix(vec3(0.90, 0.85, 0.80), vec3(0.96, 0.72, 0.48), uBulgeWarm);
+    vec3 cHII        = vec3(1.00, 0.18, 0.42);
+    vec3 cOuter      = uArmCol * 0.7 + vec3(0.1, 0.15, 0.2);
+    vec3 cDust       = vec3(0.03, 0.06, 0.10);
+
+    vec3 col = vec3(0.0);
+
+    /* core */
+    col += cBulgeInner * zCore * uCoreBright;
+
+    /* bulge */
+    float bulgeStr = clamp(v1 * 0.9 + v2 * 0.4, 0.0, 1.0);
+    col += cBulgeOuter * zBulge * (0.5 + bulgeStr * 0.6);
+
+    /* teal arms */
+    float armTeal = clamp(v2 * 1.6, 0.0, 1.0);
+    col += uArmCol * armTeal * zDisc * uTealAmt;
+
+    /* arm ridges */
+    float armRidge = clamp(v3 * 1.5, 0.0, 1.0);
+    col += uRidgeCol * armRidge * zDisc * 0.7;
+
+    /* HII */
+    float hiiPeak = smoothstep(uHIIThresh, uHIIThresh + 0.33, v1)
+                  * zDisc
+                  * (1.0 - smoothstep(0.0, 0.22, zBulge));
+    col += cHII * hiiPeak * uHIIInt;
+
+    /* outer halo */
+    col += cOuter * armRidge * zOuter * uHaloAmt;
+
+    /* dust darkening */
+    float interArm = (1.0 - clamp(v1 + v2, 0.0, 1.0)) * zDisc;
+    col = mix(col, cDust, interArm * uDustAmt);
+
+    /* exposure + gamma */
+    col *= uExposure;
+    col = min(pow(max(col, 0.0), vec3(uGamma)), 1.0);
+
+    float lum = dot(col, vec3(0.299, 0.587, 0.114));
+    float alpha = smoothstep(0.0, 0.12, lum);
+    gl_FragColor = vec4(col, alpha);
+  }
+`;
+
+/* ─── scenes ─── */
+const cam = new THREE.OrthographicCamera(-1,1,1,-1,0,1);
+const scene1 = new THREE.Scene();
+const scene2 = new THREE.Scene();
+
+function mkU1(){ return { iTime:{value:0.0}, iResolution:{value:new THREE.Vector3(W,H,1.0)} }; }
+const u1 = mkU1();
+
+/* layer 2 uniforms — all live params */
+const u2 = {
+  iTime:      { value: 0.0 },
+  iResolution:{ value: new THREE.Vector3(W,H,1.0) },
+  uTwist:     { value: P.twist  },
+  uArmDen:    { value: P.armden },
+  uArmWidth:  { value: P.armw   },
+  uIter:      { value: P.iter   },
+  uCoreBright:{ value: P.core   },
+  uBulgeSize: { value: P.bulge  },
+  uBulgeWarm: { value: P.bwarm  },
+  uTealAmt:   { value: P.teal   },
+  uHIIInt:    { value: P.hii    },
+  uHIIThresh: { value: P.hiit   },
+  uHaloAmt:   { value: P.halo   },
+  uDustAmt:   { value: P.dust   },
+  uExposure:  { value: P.exp    },
+  uGamma:     { value: P.gamma  },
+  uArmCol:    { value: new THREE.Vector3(P.armR, P.armG, P.armB) },
+  uRidgeCol:  { value: new THREE.Vector3(P.ridgeR, P.ridgeG, P.ridgeB) },
+};
+
+scene1.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2),
+  new THREE.ShaderMaterial({ uniforms:u1, vertexShader:VERT, fragmentShader:FRAG_L1 })
+));
+scene2.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2),
+  new THREE.ShaderMaterial({
+    uniforms:u2, vertexShader:VERT, fragmentShader:FRAG_L2,
+    transparent:true, blending:THREE.NormalBlending, depthWrite:false
+  })
+));
+
+/* ─── slider helper ─── */
+function bindSlider(id, valId, uniformKey, transform){
+  const sl = document.getElementById(id);
+  const vl = document.getElementById(valId);
+  if(!sl) return;
+
+  function updateTrack(){
+    const min = parseFloat(sl.min), max = parseFloat(sl.max), val = parseFloat(sl.value);
+    const pct = ((val - min) / (max - min) * 100).toFixed(1) + '%';
+    sl.style.setProperty('--val', pct);
+  }
+
+  function apply(){
+    const raw = parseFloat(sl.value);
+    const v = transform ? transform(raw) : raw;
+    vl.textContent = Number.isInteger(raw) ? raw : raw.toFixed(raw < 1 ? 3 : 2);
+    if(uniformKey && u2[uniformKey] !== undefined){
+      u2[uniformKey].value = v;
+    }
+    updateTrack();
+  }
+
+  sl.addEventListener('input', apply);
+  apply(); // init
+}
+
+bindSlider('sl-twist',  'vl-twist',  'uTwist',     null);
+bindSlider('sl-armden', 'vl-armden', 'uArmDen',    null);
+bindSlider('sl-armw',   'vl-armw',   'uArmWidth',  null);
+bindSlider('sl-iter',   'vl-iter',   'uIter',      v => Math.round(v));
+bindSlider('sl-core',   'vl-core',   'uCoreBright',null);
+bindSlider('sl-bulge',  'vl-bulge',  'uBulgeSize', null);
+bindSlider('sl-bwarm',  'vl-bwarm',  'uBulgeWarm', null);
+bindSlider('sl-teal',   'vl-teal',   'uTealAmt',   null);
+bindSlider('sl-hii',    'vl-hii',    'uHIIInt',    null);
+bindSlider('sl-hiit',   'vl-hiit',   'uHIIThresh', null);
+bindSlider('sl-halo',   'vl-halo',   'uHaloAmt',   null);
+bindSlider('sl-dust',   'vl-dust',   'uDustAmt',   null);
+bindSlider('sl-exp',    'vl-exp',    'uExposure',  null);
+bindSlider('sl-gamma',  'vl-gamma',  'uGamma',     null);
+
+/* ─── colour presets ─── */
+document.querySelectorAll('.swatch').forEach(sw => {
+  sw.addEventListener('click', () => {
+    document.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
+    sw.classList.add('active');
+    const pre = PRESETS[sw.dataset.preset];
+    if(!pre) return;
+    u2.uArmCol.value.set(pre.armR, pre.armG, pre.armB);
+    u2.uRidgeCol.value.set(pre.ridgeR, pre.ridgeG, pre.ridgeB);
+  });
+});
+
+/* ─── reset ─── */
+document.getElementById('btn-reset').addEventListener('click', () => {
+  const sliders = [
+    ['sl-twist', DEFAULTS.twist],  ['sl-armden', DEFAULTS.armden],
+    ['sl-armw',  DEFAULTS.armw],   ['sl-iter',   DEFAULTS.iter],
+    ['sl-core',  DEFAULTS.core],   ['sl-bulge',  DEFAULTS.bulge],
+    ['sl-bwarm', DEFAULTS.bwarm],  ['sl-teal',   DEFAULTS.teal],
+    ['sl-hii',   DEFAULTS.hii],    ['sl-hiit',   DEFAULTS.hiit],
+    ['sl-halo',  DEFAULTS.halo],   ['sl-dust',   DEFAULTS.dust],
+    ['sl-exp',   DEFAULTS.exp],    ['sl-gamma',  DEFAULTS.gamma],
+  ];
+  sliders.forEach(([id, val]) => {
+    const el = document.getElementById(id);
+    if(el){ el.value = val; el.dispatchEvent(new Event('input')); }
+  });
+  u2.uArmCol.value.set(DEFAULTS.armR, DEFAULTS.armG, DEFAULTS.armB);
+  u2.uRidgeCol.value.set(DEFAULTS.ridgeR, DEFAULTS.ridgeG, DEFAULTS.ridgeB);
+  document.querySelectorAll('.swatch').forEach(s =>
+    s.classList.toggle('active', s.dataset.preset === 'mw')
+  );
+});
+
+/* ─── panel open/close ─── */
+const panel = document.getElementById('params-panel');
+const tab   = document.getElementById('panel-tab');
+
+function openPanel(){
+  panel.classList.remove('collapsed');
+  tab.textContent = '◀';
+}
+function closePanel(){
+  panel.classList.add('collapsed');
+  tab.textContent = 'PARAMS';
+}
+
+tab.addEventListener('click', () => {
+  panel.classList.contains('collapsed') ? openPanel() : closePanel();
+});
+document.getElementById('panel-close').addEventListener('click', closePanel);
+
+/* ─── playback ─── */
+let playing=true, elapsed=0, lastTs=performance.now(), speedIdx=1;
+const SPEEDS=[0.3,1.0,2.5], SL=['0.3×','1×','2.5×'];
+
+document.getElementById('btn-play').addEventListener('click',function(){
+  playing=!playing;
+  this.textContent=playing?'▶':'⏸';
+  this.classList.toggle('on',playing);
+});
+document.getElementById('btn-speed').addEventListener('click',function(){
+  speedIdx=(speedIdx+1)%SPEEDS.length;
+  this.title='Speed: '+SL[speedIdx];
+  this.style.color=speedIdx===0?'rgba(100,200,255,.8)':speedIdx===2?'rgba(255,130,80,.9)':'';
+});
+window.addEventListener('wheel',e=>{
+  speedIdx=e.deltaY>0?Math.min(speedIdx+1,SPEEDS.length-1):Math.max(speedIdx-1,0);
+},{passive:true});
+
+window.addEventListener('resize',()=>{
+  renderer.setSize(window.innerWidth,window.innerHeight);
+  const v=new THREE.Vector3(window.innerWidth,window.innerHeight,1);
+  u1.iResolution.value.copy(v);
+  u2.iResolution.value.copy(v);
+});
+
+/* ─── render loop ─── */
+function animate(ts){
+  requestAnimationFrame(animate);
+  const dt=(ts-lastTs)/1000; lastTs=ts;
+  if(playing) elapsed+=dt*SPEEDS[speedIdx];
+  u1.iTime.value=elapsed;
+  u2.iTime.value=elapsed;
+  renderer.clear();
+  renderer.render(scene1,cam);
+  renderer.clearDepth();
+  renderer.render(scene2,cam);
+}
+requestAnimationFrame(animate);
+</script>
+</body>
+</html>
