@@ -349,7 +349,7 @@ body {
 }
 
 .category:hover .category-icon {
-    transform: scale(1.1) rotate(5deg);
+    transform: scale(1.1) rotate(15deg);
 }
 
 .category-icon svg {
@@ -435,7 +435,7 @@ body {
 .link-card:hover {
     background: rgba(255, 255, 255, 0.08);
     border-color: rgba(102, 126, 234, 0.4);
-    transform: translateX(8px);
+    transform: translateX(0px);
     box-shadow: 0 8px 24px rgba(102, 126, 234, 0.15);
 }
 
@@ -453,7 +453,7 @@ body {
 }
 
 .link-card:hover .link-icon {
-    transform: scale(1.1);
+    transform: scale(1);
 }
 
 .link-content {
