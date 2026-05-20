@@ -1,0 +1,1513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LEGO Music Overlay</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=Nunito+Sans:wght@400;600;700&display=swap');
+
+  :root {
+    --lego-red: #D01012;
+    --lego-yellow: #F5C400;
+    --lego-blue: #006DB7;
+    --lego-green: #00A650;
+    --lego-dark: #1A1A2E;
+    --lego-darker: #0D0D1A;
+    --lego-stud: rgba(255,255,255,0.12);
+    --lego-border: 3px solid rgba(255,255,255,0.18);
+    --lego-shadow: 0 4px 0 rgba(0,0,0,0.5);
+    --panel-bg: rgba(13,13,26,0.93);
+    --panel-border: 3px solid var(--lego-yellow);
+    --radius: 6px;
+    --tri-size: 72px;
+    --tri-size-sm: 54px;
+    font-family: 'Nunito Sans', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    width: 100vw; height: 100vh;
+    background: transparent;
+    overflow: hidden;
+    position: relative;
+    user-select: none;
+  }
+
+  /* ── STUD PATTERN ── */
+  .stud-pattern {
+    position: absolute; inset: 0;
+    background-image:
+      radial-gradient(circle 4px at center, var(--lego-stud) 100%, transparent 100%);
+    background-size: 20px 20px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s;
+    z-index: 0;
+  }
+
+  /* ═══════════════════════════════════════
+     MUSIC PANEL — top-left
+  ═══════════════════════════════════════ */
+  #music-panel {
+    position: fixed;
+    top: 0; left: 0;
+    z-index: 100;
+    transition: all 0.35s cubic-bezier(.4,0,.2,1);
+  }
+
+  #music-panel.expanded {
+    width: 300px;
+  }
+
+  /* Collapsed = corner triangle top-left */
+  #music-panel.collapsed {
+    width: var(--tri-size);
+    height: var(--tri-size);
+  }
+
+  #music-panel.collapsed .panel-body { display: none; }
+
+  /* Triangle clip for collapsed state */
+  .panel-triangle-tl {
+    position: absolute;
+    top: 0; left: 0;
+    width: var(--tri-size);
+    height: var(--tri-size);
+    background: var(--lego-yellow);
+    clip-path: polygon(0 0, 100% 0, 0 100%);
+    cursor: pointer;
+    z-index: 2;
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-start;
+    padding: 5px 0 0 5px;
+    transition: background 0.2s;
+    box-shadow: var(--lego-shadow);
+    border-bottom-right-radius: 2px;
+  }
+  .panel-triangle-tl:hover { background: #ffd500; }
+  .panel-triangle-tl .tri-icon {
+    font-size: 14px;
+    line-height: 1;
+    color: var(--lego-dark);
+    font-weight: 900;
+    font-family: 'Nunito', sans-serif;
+  }
+
+  /* Expanded panel body */
+  .panel-body {
+    background: var(--panel-bg);
+    border: var(--panel-border);
+    border-top: none; border-left: none;
+    border-bottom-right-radius: 12px;
+    padding: 0;
+    overflow: hidden;
+    backdrop-filter: blur(12px);
+    box-shadow: 4px 4px 0 rgba(0,0,0,0.6), var(--lego-shadow);
+    min-width: 280px;
+  }
+
+  /* Indented corner notch */
+  #music-panel.expanded .panel-triangle-tl {
+    clip-path: polygon(0 0, 100% 0, 0 100%);
+  }
+
+  .panel-header {
+    background: var(--lego-yellow);
+    padding: 6px 10px 6px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+  }
+  .panel-header h2 {
+    font-family: 'Nunito', sans-serif;
+    font-size: 13px;
+    font-weight: 900;
+    color: var(--lego-dark);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .panel-header .collapse-btn {
+    background: var(--lego-dark);
+    color: var(--lego-yellow);
+    border: none;
+    border-radius: 3px;
+    width: 20px; height: 20px;
+    font-size: 12px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 900;
+    line-height: 1;
+    transition: background 0.15s;
+  }
+  .panel-header .collapse-btn:hover { background: var(--lego-red); }
+
+  .panel-content { padding: 12px; }
+
+  /* NOW PLAYING */
+  .now-playing-label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--lego-yellow);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  .song-title {
+    font-family: 'Nunito', sans-serif;
+    font-size: 15px;
+    font-weight: 900;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 256px;
+  }
+
+  .song-artist {
+    font-size: 11px;
+    color: rgba(255,255,255,0.6);
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Progress bar */
+  .progress-wrap {
+    margin: 10px 0 6px;
+    height: 6px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 3px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  .progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--lego-yellow), var(--lego-red));
+    border-radius: 3px;
+    transition: width 1s linear;
+    width: 0%;
+    position: relative;
+  }
+  .progress-bar::after {
+    content:'';
+    position: absolute;
+    right: 0; top: 50%;
+    transform: translateY(-50%);
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--lego-yellow);
+    box-shadow: 0 0 6px var(--lego-yellow);
+  }
+
+  .time-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 9px;
+    color: rgba(255,255,255,0.45);
+    margin-bottom: 10px;
+  }
+
+  /* Controls */
+  .controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .ctrl-btn {
+    background: rgba(255,255,255,0.07);
+    border: 2px solid rgba(255,255,255,0.12);
+    color: #fff;
+    border-radius: 4px;
+    padding: 5px 8px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.15s;
+    display: flex; align-items: center; justify-content: center;
+    font-family: inherit;
+    line-height: 1;
+  }
+  .ctrl-btn:hover {
+    background: var(--lego-yellow);
+    color: var(--lego-dark);
+    border-color: var(--lego-yellow);
+    transform: translateY(-1px);
+    box-shadow: 0 3px 0 rgba(0,0,0,0.4);
+  }
+  .ctrl-btn.play-btn {
+    background: var(--lego-yellow);
+    color: var(--lego-dark);
+    border-color: var(--lego-yellow);
+    padding: 6px 14px;
+    font-size: 14px;
+    box-shadow: 0 3px 0 rgba(0,0,0,0.4);
+  }
+  .ctrl-btn.play-btn:hover { background: #ffd500; transform: translateY(-1px); }
+  .ctrl-btn.active { background: var(--lego-red); border-color: var(--lego-red); color: #fff; }
+
+  /* Volume */
+  .vol-row {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 10px;
+  }
+  .vol-label { font-size: 10px; color: rgba(255,255,255,0.5); min-width: 20px; }
+  input[type=range] {
+    flex: 1;
+    -webkit-appearance: none;
+    height: 4px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 2px;
+    outline: none;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: var(--lego-yellow);
+    cursor: pointer;
+    box-shadow: 0 0 4px rgba(0,0,0,0.5);
+  }
+
+  /* Divider */
+  .divider {
+    border: none;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    margin: 8px 0;
+  }
+
+  /* Queue */
+  .queue-label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--lego-blue);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .queue-list {
+    max-height: 110px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--lego-yellow) transparent;
+  }
+  .queue-list::-webkit-scrollbar { width: 3px; }
+  .queue-list::-webkit-scrollbar-thumb { background: var(--lego-yellow); border-radius: 2px; }
+
+  .queue-item {
+    display: flex; align-items: center; gap: 6px;
+    padding: 4px 6px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.12s;
+    font-size: 11px;
+  }
+  .queue-item:hover { background: rgba(255,255,255,0.06); }
+  .queue-item.active { background: rgba(245,196,0,0.12); }
+  .queue-num { font-size: 9px; color: rgba(255,255,255,0.3); min-width: 14px; }
+  .queue-type {
+    font-size: 8px;
+    padding: 1px 4px;
+    border-radius: 2px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .queue-type.twitch { background: #6441a5; color: #fff; }
+  .queue-type.playlist { background: var(--lego-green); color: #fff; }
+  .queue-title { flex: 1; color: rgba(255,255,255,0.8); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .queue-del {
+    background: none; border: none; color: rgba(255,255,255,0.25);
+    cursor: pointer; font-size: 11px; padding: 0 2px;
+    transition: color 0.12s;
+    line-height: 1;
+  }
+  .queue-del:hover { color: var(--lego-red); }
+
+  /* Status badge */
+  .status-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+  }
+  .status-badge.connected { background: rgba(0,166,80,0.2); color: var(--lego-green); border: 1px solid var(--lego-green); }
+  .status-badge.disconnected { background: rgba(208,16,18,0.2); color: var(--lego-red); border: 1px solid var(--lego-red); }
+  .status-badge::before {
+    content: '';
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  /* Redemption notification */
+  .redeem-notif {
+    position: fixed;
+    top: 20px; left: 50%;
+    transform: translateX(-50%) translateY(-80px);
+    background: var(--lego-dark);
+    border: 3px solid var(--lego-yellow);
+    border-radius: 8px;
+    padding: 10px 16px;
+    display: flex; align-items: center; gap: 10px;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 900;
+    color: #fff;
+    z-index: 999;
+    transition: transform 0.4s cubic-bezier(.4,0,.2,1);
+    box-shadow: 0 4px 0 rgba(0,0,0,0.6), 0 0 20px rgba(245,196,0,0.3);
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  .redeem-notif.show { transform: translateX(-50%) translateY(0); }
+  .redeem-notif .notif-icon { font-size: 20px; }
+  .redeem-notif .notif-text { font-size: 12px; line-height: 1.4; }
+  .redeem-notif .notif-text span { color: var(--lego-yellow); }
+
+  /* ═══════════════════════════════════════
+     SETTINGS PANEL — bottom-right (smaller)
+  ═══════════════════════════════════════ */
+  #settings-panel {
+    position: fixed;
+    bottom: 0; right: 0;
+    z-index: 100;
+    transition: all 0.35s cubic-bezier(.4,0,.2,1);
+  }
+
+  #settings-panel.expanded { width: 270px; }
+
+  #settings-panel.collapsed {
+    width: var(--tri-size-sm);
+    height: var(--tri-size-sm);
+  }
+  #settings-panel.collapsed .settings-body { display: none; }
+
+  /* Triangle clip bottom-right */
+  .panel-triangle-br {
+    position: absolute;
+    bottom: 0; right: 0;
+    width: var(--tri-size-sm);
+    height: var(--tri-size-sm);
+    background: var(--lego-blue);
+    clip-path: polygon(100% 0, 100% 100%, 0 100%);
+    cursor: pointer;
+    z-index: 2;
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-end;
+    padding: 0 5px 5px 0;
+    transition: background 0.2s;
+    box-shadow: var(--lego-shadow);
+  }
+  .panel-triangle-br:hover { background: #0085db; }
+  .panel-triangle-br .tri-icon {
+    font-size: 13px;
+    color: #fff;
+    font-weight: 900;
+    font-family: 'Nunito', sans-serif;
+  }
+
+  .settings-body {
+    background: var(--panel-bg);
+    border: 3px solid var(--lego-blue);
+    border-bottom: none; border-right: none;
+    border-top-left-radius: 12px;
+    padding: 0;
+    overflow: hidden;
+    backdrop-filter: blur(12px);
+    box-shadow: -4px -4px 0 rgba(0,0,0,0.6);
+    min-width: 240px;
+  }
+
+  .settings-header {
+    background: var(--lego-blue);
+    padding: 6px 14px 6px 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+  }
+  .settings-header h2 {
+    font-family: 'Nunito', sans-serif;
+    font-size: 12px;
+    font-weight: 900;
+    color: #fff;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .settings-header .collapse-btn {
+    background: rgba(255,255,255,0.15);
+    color: #fff;
+    border: none;
+    border-radius: 3px;
+    width: 18px; height: 18px;
+    font-size: 11px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 900;
+    line-height: 1;
+    transition: background 0.15s;
+  }
+  .settings-header .collapse-btn:hover { background: rgba(255,255,255,0.3); }
+
+  .settings-content {
+    padding: 10px 12px;
+    max-height: 70vh;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--lego-blue) transparent;
+  }
+  .settings-content::-webkit-scrollbar { width: 3px; }
+  .settings-content::-webkit-scrollbar-thumb { background: var(--lego-blue); border-radius: 2px; }
+
+  /* Settings sections */
+  .settings-section-title {
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--lego-blue);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    margin-top: 10px;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .settings-section-title:first-child { margin-top: 0; }
+  .settings-section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgba(255,255,255,0.08);
+  }
+
+  .field-row {
+    margin-bottom: 7px;
+  }
+  .field-label {
+    font-size: 9px;
+    color: rgba(255,255,255,0.5);
+    margin-bottom: 3px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .field-input {
+    width: 100%;
+    background: rgba(255,255,255,0.06);
+    border: 1.5px solid rgba(255,255,255,0.12);
+    border-radius: 4px;
+    color: #fff;
+    padding: 5px 8px;
+    font-size: 11px;
+    font-family: 'Nunito Sans', sans-serif;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .field-input:focus { border-color: var(--lego-blue); }
+  .field-input::placeholder { color: rgba(255,255,255,0.25); }
+
+  .field-select {
+    width: 100%;
+    background: rgba(255,255,255,0.06);
+    border: 1.5px solid rgba(255,255,255,0.12);
+    border-radius: 4px;
+    color: #fff;
+    padding: 5px 8px;
+    font-size: 11px;
+    font-family: 'Nunito Sans', sans-serif;
+    outline: none;
+    cursor: pointer;
+    appearance: none;
+  }
+  .field-select option { background: #1a1a2e; }
+
+  .action-btn {
+    width: 100%;
+    padding: 7px;
+    border: none;
+    border-radius: 4px;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 900;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: all 0.15s;
+    box-shadow: 0 3px 0 rgba(0,0,0,0.4);
+    margin-bottom: 5px;
+  }
+  .action-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 0 rgba(0,0,0,0.4); }
+  .action-btn:active { transform: translateY(1px); box-shadow: 0 1px 0 rgba(0,0,0,0.4); }
+  .btn-yellow { background: var(--lego-yellow); color: var(--lego-dark); }
+  .btn-blue { background: var(--lego-blue); color: #fff; }
+  .btn-red { background: var(--lego-red); color: #fff; }
+  .btn-green { background: var(--lego-green); color: #fff; }
+
+  /* Toggle row */
+  .toggle-row {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 7px;
+    padding: 4px 0;
+  }
+  .toggle-label { font-size: 10px; color: rgba(255,255,255,0.7); }
+  .toggle {
+    position: relative;
+    width: 30px; height: 16px;
+  }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider {
+    position: absolute; inset: 0;
+    background: rgba(255,255,255,0.1);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s;
+    border: 1px solid rgba(255,255,255,0.15);
+  }
+  .toggle-slider::before {
+    content: '';
+    position: absolute;
+    width: 10px; height: 10px;
+    left: 2px; top: 50%;
+    transform: translateY(-50%);
+    border-radius: 50%;
+    background: rgba(255,255,255,0.4);
+    transition: all 0.2s;
+  }
+  .toggle input:checked + .toggle-slider { background: var(--lego-blue); border-color: var(--lego-blue); }
+  .toggle input:checked + .toggle-slider::before { left: 16px; background: #fff; }
+
+  /* Info text */
+  .info-text {
+    font-size: 9px;
+    color: rgba(255,255,255,0.35);
+    line-height: 1.5;
+    margin-top: 4px;
+  }
+  .info-text a { color: var(--lego-yellow); text-decoration: none; }
+  .info-text a:hover { text-decoration: underline; }
+
+  /* Permissions box */
+  .perms-box {
+    background: rgba(100,65,165,0.15);
+    border: 1px solid rgba(100,65,165,0.4);
+    border-radius: 4px;
+    padding: 7px 9px;
+    margin-bottom: 8px;
+  }
+  .perms-title {
+    font-size: 9px; font-weight: 700;
+    color: #b39ddb; text-transform: uppercase;
+    letter-spacing: 1px; margin-bottom: 5px;
+  }
+  .perm-item {
+    display: flex; align-items: flex-start; gap: 5px;
+    font-size: 9px; color: rgba(255,255,255,0.65);
+    margin-bottom: 3px; line-height: 1.4;
+  }
+  .perm-item::before { content: '🔑'; font-size: 9px; margin-top: 1px; flex-shrink: 0; }
+
+  /* File upload area */
+  .upload-area {
+    border: 2px dashed rgba(255,255,255,0.15);
+    border-radius: 6px;
+    padding: 12px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 6px;
+    background: rgba(255,255,255,0.03);
+  }
+  .upload-area:hover { border-color: var(--lego-yellow); background: rgba(245,196,0,0.05); }
+  .upload-area.drag-over { border-color: var(--lego-yellow); background: rgba(245,196,0,0.1); }
+  .upload-icon { font-size: 20px; margin-bottom: 4px; }
+  .upload-text { font-size: 10px; color: rgba(255,255,255,0.5); }
+  .upload-text strong { color: var(--lego-yellow); }
+  #file-input { display: none; }
+
+  /* URL add row */
+  .url-row {
+    display: flex; gap: 5px; margin-bottom: 6px;
+  }
+  .url-row .field-input { flex: 1; }
+  .url-add-btn {
+    background: var(--lego-yellow);
+    color: var(--lego-dark);
+    border: none;
+    border-radius: 4px;
+    padding: 0 10px;
+    font-weight: 900;
+    font-family: 'Nunito', sans-serif;
+    font-size: 13px;
+    cursor: pointer;
+    box-shadow: 0 2px 0 rgba(0,0,0,0.3);
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .url-add-btn:hover { background: #ffd500; transform: translateY(-1px); }
+
+  /* Playlist items in settings */
+  .playlist-item {
+    display: flex; align-items: center; gap: 5px;
+    padding: 4px 6px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 3px;
+    margin-bottom: 3px;
+    font-size: 10px;
+  }
+  .playlist-item .pi-name { flex: 1; color: rgba(255,255,255,0.7); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .playlist-item .pi-del {
+    background: none; border: none; color: rgba(255,255,255,0.25);
+    cursor: pointer; font-size: 12px; padding: 0;
+    transition: color 0.12s; line-height: 1;
+  }
+  .playlist-item .pi-del:hover { color: var(--lego-red); }
+
+  /* ── Stud decorations ── */
+  .stud-row {
+    display: flex; gap: 4px; padding: 5px 10px;
+  }
+  .stud {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.1);
+    border: 1.5px solid rgba(255,255,255,0.06);
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.3);
+  }
+  .stud.yellow { background: rgba(245,196,0,0.2); border-color: rgba(245,196,0,0.15); }
+  .stud.blue { background: rgba(0,109,183,0.25); border-color: rgba(0,109,183,0.2); }
+  .stud.red { background: rgba(208,16,18,0.25); border-color: rgba(208,16,18,0.2); }
+  .stud.green { background: rgba(0,166,80,0.25); border-color: rgba(0,166,80,0.2); }
+
+  /* ── Idle equalizer animation ── */
+  .equalizer {
+    display: flex; align-items: flex-end; gap: 2px;
+    height: 16px; margin-left: auto;
+  }
+  .eq-bar {
+    width: 3px;
+    background: var(--lego-yellow);
+    border-radius: 2px 2px 0 0;
+    animation: eq-bounce var(--dur, 0.8s) ease-in-out infinite alternate;
+    height: 4px;
+  }
+  .eq-bar:nth-child(1) { --dur: 0.7s; animation-delay: 0s; }
+  .eq-bar:nth-child(2) { --dur: 0.5s; animation-delay: 0.1s; }
+  .eq-bar:nth-child(3) { --dur: 0.9s; animation-delay: 0.2s; }
+  .eq-bar:nth-child(4) { --dur: 0.6s; animation-delay: 0.15s; }
+  .eq-bar:nth-child(5) { --dur: 0.8s; animation-delay: 0.05s; }
+  @keyframes eq-bounce {
+    from { height: 2px; }
+    to { height: 14px; }
+  }
+  .equalizer.paused .eq-bar { animation-play-state: paused; height: 4px; }
+
+  /* Scrolling text for long titles */
+  .scroll-text-wrap {
+    overflow: hidden;
+    max-width: 100%;
+  }
+  .scroll-text {
+    display: inline-block;
+    white-space: nowrap;
+    animation: none;
+  }
+  .scroll-text.scrolling {
+    animation: text-scroll 8s linear infinite;
+    padding-right: 30px;
+  }
+  @keyframes text-scroll {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+
+  /* Lego brick texture on panel borders */
+  .panel-body::before,
+  .settings-body::before {
+    content: '';
+    display: block;
+    height: 8px;
+    background: repeating-linear-gradient(
+      90deg,
+      transparent 0px, transparent 14px,
+      rgba(255,255,255,0.04) 14px, rgba(255,255,255,0.04) 16px
+    );
+  }
+
+  /* Connection status in music panel */
+  .twitch-status-row {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 8px;
+  }
+
+  /* Responsive for very small screens */
+  @media (max-width: 480px) {
+    :root {
+      --tri-size: 56px;
+      --tri-size-sm: 44px;
+    }
+    #music-panel.expanded { width: 260px; }
+    #settings-panel.expanded { width: 240px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════ MUSIC PANEL ═══════════════════ -->
+<div id="music-panel" class="expanded">
+  <!-- Collapsed triangle toggle -->
+  <div class="panel-triangle-tl" id="music-tri" onclick="togglePanel('music')">
+    <span class="tri-icon">🎵</span>
+  </div>
+
+  <div class="panel-body">
+    <div class="panel-header" onclick="togglePanel('music')">
+      <h2>🎵 Now Playing</h2>
+      <button class="collapse-btn">▲</button>
+    </div>
+
+    <!-- Stud decoration -->
+    <div class="stud-row">
+      <div class="stud yellow"></div><div class="stud yellow"></div>
+      <div class="stud red"></div><div class="stud"></div>
+      <div class="stud green"></div><div class="stud"></div>
+      <div class="stud blue"></div><div class="stud yellow"></div>
+    </div>
+
+    <div class="panel-content">
+      <!-- Status -->
+      <div class="twitch-status-row">
+        <span class="status-badge disconnected" id="twitch-status-badge">Twitch: Off</span>
+        <div class="equalizer paused" id="equalizer">
+          <div class="eq-bar"></div><div class="eq-bar"></div>
+          <div class="eq-bar"></div><div class="eq-bar"></div>
+          <div class="eq-bar"></div>
+        </div>
+      </div>
+
+      <!-- Now Playing -->
+      <div class="now-playing-label">▶ Now Playing</div>
+      <div class="scroll-text-wrap">
+        <div class="song-title scroll-text" id="song-title">No song playing</div>
+      </div>
+      <div class="song-artist" id="song-artist">Add songs to queue or playlist</div>
+
+      <!-- Progress -->
+      <div class="progress-wrap">
+        <div class="progress-bar" id="progress-bar"></div>
+      </div>
+      <div class="time-row">
+        <span id="time-cur">0:00</span>
+        <span id="time-tot">0:00</span>
+      </div>
+
+      <!-- Controls -->
+      <div class="controls">
+        <button class="ctrl-btn" onclick="prevSong()" title="Previous">⏮</button>
+        <button class="ctrl-btn play-btn" id="play-btn" onclick="togglePlay()">▶</button>
+        <button class="ctrl-btn" onclick="nextSong()" title="Next">⏭</button>
+        <button class="ctrl-btn" id="shuffle-btn" onclick="toggleShuffle()" title="Shuffle">⇀</button>
+        <button class="ctrl-btn" id="repeat-btn" onclick="toggleRepeat()" title="Repeat">↻</button>
+      </div>
+
+      <!-- Volume -->
+      <div class="vol-row">
+        <span class="vol-label" id="vol-icon">🔊</span>
+        <input type="range" id="vol-slider" min="0" max="100" value="80" oninput="setVolume(this.value)">
+        <span class="vol-label" style="min-width:26px;text-align:right;font-size:9px;color:rgba(255,255,255,0.4)" id="vol-pct">80%</span>
+      </div>
+
+      <hr class="divider">
+
+      <!-- Queue -->
+      <div class="queue-label">Queue <span id="queue-count" style="color:rgba(255,255,255,0.3);font-size:8px"></span></div>
+      <div class="queue-list" id="queue-list">
+        <div style="font-size:10px;color:rgba(255,255,255,0.25);padding:6px;text-align:center">Queue is empty</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ SETTINGS PANEL ═══════════════════ -->
+<div id="settings-panel" class="collapsed">
+  <!-- Collapsed triangle toggle -->
+  <div class="panel-triangle-br" id="settings-tri" onclick="togglePanel('settings')">
+    <span class="tri-icon">⚙</span>
+  </div>
+
+  <div class="settings-body">
+    <div class="settings-header" onclick="togglePanel('settings')">
+      <h2>⚙ Settings</h2>
+      <button class="collapse-btn">▼</button>
+    </div>
+
+    <div class="settings-content">
+
+      <!-- TWITCH AUTH -->
+      <div class="settings-section-title">Twitch Auth</div>
+
+      <div class="perms-box">
+        <div class="perms-title">🟣 Required Token Permissions</div>
+        <div class="perm-item"><b>channel:read:redemptions</b> — read channel point redeems</div>
+        <div class="perm-item"><b>channel:manage:redemptions</b> — mark redeems as fulfilled</div>
+        <div class="perm-item"><b>chat:read</b> — optional: read !song commands</div>
+        <div class="info-text" style="margin-top:4px">
+          Generate at <a href="https://twitchtokengenerator.com" target="_blank">twitchtokengenerator.com</a> → "Custom Scope Token" → enable the scopes above.
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field-label">Channel Name</div>
+        <input class="field-input" type="text" id="cfg-channel" placeholder="your_channel_name">
+      </div>
+      <div class="field-row">
+        <div class="field-label">OAuth Access Token</div>
+        <input class="field-input" type="password" id="cfg-token" placeholder="oauth:xxxxxxxxxxxxxxx">
+      </div>
+      <div class="field-row">
+        <div class="field-label">Client ID (optional)</div>
+        <input class="field-input" type="text" id="cfg-clientid" placeholder="Your app client ID">
+      </div>
+      <button class="action-btn btn-yellow" onclick="connectTwitch()">Connect to Twitch</button>
+      <button class="action-btn btn-red" onclick="disconnectTwitch()" style="display:none" id="btn-disconnect">Disconnect</button>
+      <div class="info-text" id="twitch-connect-info">Enter credentials and click Connect.</div>
+
+      <!-- REDEMPTION TRIGGERS -->
+      <div class="settings-section-title">Redemption Triggers</div>
+
+      <div class="field-row">
+        <div class="field-label">Song Request Reward Name</div>
+        <input class="field-input" type="text" id="cfg-reward-name" placeholder="e.g. Song Request" value="Song Request">
+      </div>
+      <div class="field-row">
+        <div class="field-label">Skip Song Reward Name</div>
+        <input class="field-input" type="text" id="cfg-skip-name" placeholder="e.g. Skip Song" value="Skip Song">
+      </div>
+      <div class="field-row">
+        <div class="field-label">Source (URL type accepted)</div>
+        <select class="field-select" id="cfg-source-type">
+          <option value="youtube">YouTube URL</option>
+          <option value="direct">Direct Audio URL</option>
+          <option value="both">Both</option>
+        </select>
+      </div>
+      <div class="toggle-row">
+        <span class="toggle-label">Auto-fulfill redeems</span>
+        <label class="toggle"><input type="checkbox" id="cfg-autofulfill" checked><span class="toggle-slider"></span></label>
+      </div>
+      <div class="toggle-row">
+        <span class="toggle-label">Show redeem notifications</span>
+        <label class="toggle"><input type="checkbox" id="cfg-notif" checked><span class="toggle-slider"></span></label>
+      </div>
+      <div class="toggle-row">
+        <span class="toggle-label">Redeems play next (skip queue)</span>
+        <label class="toggle"><input type="checkbox" id="cfg-priority"><span class="toggle-slider"></span></label>
+      </div>
+      <div class="toggle-row">
+        <span class="toggle-label">Max queue size limit</span>
+        <label class="toggle"><input type="checkbox" id="cfg-maxqueue"><span class="toggle-slider"></span></label>
+      </div>
+      <div class="field-row" id="max-queue-row" style="display:none">
+        <div class="field-label">Max Queue Size</div>
+        <input class="field-input" type="number" id="cfg-maxsize" value="20" min="1" max="100">
+      </div>
+
+      <!-- PLAYLIST / FILE UPLOAD -->
+      <div class="settings-section-title">Local Playlist</div>
+
+      <div class="upload-area" id="upload-area" onclick="document.getElementById('file-input').click()">
+        <div class="upload-icon">📂</div>
+        <div class="upload-text"><strong>Click or drag</strong> audio files here<br><span style="font-size:8px;opacity:0.6">MP3 · WAV · OGG · FLAC · M4A</span></div>
+      </div>
+      <input type="file" id="file-input" accept="audio/*" multiple onchange="handleFileUpload(this.files)">
+
+      <div class="field-label" style="margin-bottom:4px">Add by URL (direct audio / cloud)</div>
+      <div class="url-row">
+        <input class="field-input" type="text" id="url-input" placeholder="https://... audio URL">
+        <button class="url-add-btn" onclick="addUrlToPlaylist()">+</button>
+      </div>
+      <div class="info-text" style="margin-bottom:6px">Supports direct .mp3/.ogg URLs and cloud-hosted audio. YouTube requires yt-dlp proxy — see docs.</div>
+
+      <div id="playlist-items" style="margin-bottom:6px">
+        <div style="font-size:9px;color:rgba(255,255,255,0.25);text-align:center;padding:4px">No files loaded</div>
+      </div>
+
+      <button class="action-btn btn-blue" onclick="loadPlaylistToQueue()">▶ Load All to Queue</button>
+      <button class="action-btn btn-red" onclick="clearPlaylist()">✕ Clear Playlist</button>
+
+      <!-- DISPLAY -->
+      <div class="settings-section-title">Display</div>
+      <div class="toggle-row">
+        <span class="toggle-label">Show stud background</span>
+        <label class="toggle"><input type="checkbox" id="cfg-studs" onchange="toggleStuds(this.checked)"><span class="toggle-slider"></span></label>
+      </div>
+      <div class="toggle-row">
+        <span class="toggle-label">Equalizer animation</span>
+        <label class="toggle"><input type="checkbox" id="cfg-eq" checked onchange="toggleEqAnim(this.checked)"><span class="toggle-slider"></span></label>
+      </div>
+      <div class="field-row">
+        <div class="field-label">Panel Accent Color</div>
+        <select class="field-select" id="cfg-accent" onchange="setAccent(this.value)">
+          <option value="yellow">LEGO Yellow</option>
+          <option value="red">LEGO Red</option>
+          <option value="blue">LEGO Blue</option>
+          <option value="green">LEGO Green</option>
+        </select>
+      </div>
+
+      <div class="stud-row" style="justify-content:center;margin-top:4px">
+        <div class="stud yellow"></div><div class="stud red"></div>
+        <div class="stud blue"></div><div class="stud green"></div>
+        <div class="stud yellow"></div><div class="stud"></div>
+      </div>
+
+      <button class="action-btn btn-green" onclick="saveSettings()">💾 Save Settings</button>
+
+    </div>
+  </div>
+</div>
+
+<!-- Stud pattern bg -->
+<div class="stud-pattern" id="stud-pattern"></div>
+
+<!-- Redemption notification -->
+<div class="redeem-notif" id="redeem-notif">
+  <span class="notif-icon">🎟</span>
+  <div class="notif-text">
+    <span id="notif-user">User</span> redeemed <b style="color:var(--lego-yellow)">Song Request</b><br>
+    <span id="notif-song" style="color:rgba(255,255,255,0.8);font-size:10px;font-weight:400"></span>
+  </div>
+</div>
+
+<!-- Hidden audio element -->
+<audio id="audio-player" preload="metadata"></audio>
+
+<script>
+// ═══════════════ STATE ═══════════════
+const state = {
+  queue: [],          // {title, artist, url, type:'twitch'|'playlist', src:'file'|'url'}
+  playlist: [],       // local loaded songs
+  currentIdx: -1,
+  isPlaying: false,
+  isShuffle: false,
+  isRepeat: false,    // 'none'|'one'|'all'
+  repeatMode: 'none',
+  volume: 80,
+  twitchWS: null,
+  twitchConnected: false,
+  settings: {}
+};
+
+// ═══════════════ PANEL COLLAPSE ═══════════════
+function togglePanel(which) {
+  const panel = document.getElementById(which + '-panel');
+  const isCollapsed = panel.classList.contains('collapsed');
+  if (isCollapsed) {
+    panel.classList.remove('collapsed');
+    panel.classList.add('expanded');
+    const btn = panel.querySelector('.collapse-btn');
+    if (btn) btn.textContent = which === 'music' ? '▲' : '▼';
+  } else {
+    panel.classList.remove('expanded');
+    panel.classList.add('collapsed');
+    const btn = panel.querySelector('.collapse-btn');
+    if (btn) btn.textContent = which === 'music' ? '▼' : '▲';
+  }
+}
+
+// Toggle max queue row
+document.getElementById('cfg-maxqueue').addEventListener('change', function() {
+  document.getElementById('max-queue-row').style.display = this.checked ? 'block' : 'none';
+});
+
+// ═══════════════ AUDIO PLAYER ═══════════════
+const audio = document.getElementById('audio-player');
+
+audio.addEventListener('timeupdate', updateProgress);
+audio.addEventListener('ended', handleSongEnd);
+audio.addEventListener('loadedmetadata', updateTotalTime);
+audio.addEventListener('play', () => {
+  document.getElementById('play-btn').textContent = '⏸';
+  document.getElementById('equalizer').classList.remove('paused');
+  state.isPlaying = true;
+});
+audio.addEventListener('pause', () => {
+  document.getElementById('play-btn').textContent = '▶';
+  document.getElementById('equalizer').classList.add('paused');
+  state.isPlaying = false;
+});
+
+function togglePlay() {
+  if (!audio.src && state.queue.length === 0) return;
+  if (!audio.src && state.queue.length > 0) { playIndex(0); return; }
+  if (audio.paused) audio.play().catch(()=>{});
+  else audio.pause();
+}
+
+function prevSong() {
+  if (state.currentIdx > 0) playIndex(state.currentIdx - 1);
+  else if (state.repeatMode === 'all') playIndex(state.queue.length - 1);
+}
+
+function nextSong() {
+  if (state.isShuffle && state.queue.length > 1) {
+    let next;
+    do { next = Math.floor(Math.random() * state.queue.length); }
+    while (next === state.currentIdx);
+    playIndex(next);
+  } else if (state.currentIdx < state.queue.length - 1) {
+    playIndex(state.currentIdx + 1);
+  } else if (state.repeatMode === 'all') {
+    playIndex(0);
+  }
+}
+
+function handleSongEnd() {
+  if (state.repeatMode === 'one') {
+    audio.currentTime = 0; audio.play().catch(()=>{});
+  } else { nextSong(); }
+}
+
+function playIndex(idx) {
+  if (idx < 0 || idx >= state.queue.length) return;
+  const song = state.queue[idx];
+  state.currentIdx = idx;
+  audio.src = song.url;
+  audio.volume = state.volume / 100;
+  audio.play().catch(e => {
+    console.warn('Play failed:', e);
+    updateNowPlaying(song.title, song.artist || 'Unknown');
+  });
+  updateNowPlaying(song.title, song.artist || '');
+  renderQueue();
+}
+
+function updateNowPlaying(title, artist) {
+  const el = document.getElementById('song-title');
+  const ae = document.getElementById('song-artist');
+  el.textContent = title;
+  ae.textContent = artist || '';
+  // Auto-scroll if long
+  el.classList.remove('scrolling');
+  setTimeout(() => {
+    if (el.scrollWidth > el.parentElement.offsetWidth) {
+      el.textContent = title + '   —   ' + title; // duplicate for seamless
+      el.classList.add('scrolling');
+    }
+  }, 300);
+}
+
+function updateProgress() {
+  const pct = audio.duration ? (audio.currentTime / audio.duration) * 100 : 0;
+  document.getElementById('progress-bar').style.width = pct + '%';
+  document.getElementById('time-cur').textContent = formatTime(audio.currentTime);
+}
+
+function updateTotalTime() {
+  document.getElementById('time-tot').textContent = formatTime(audio.duration);
+}
+
+function formatTime(s) {
+  if (!s || isNaN(s)) return '0:00';
+  const m = Math.floor(s / 60), sec = Math.floor(s % 60);
+  return m + ':' + String(sec).padStart(2, '0');
+}
+
+function setVolume(v) {
+  state.volume = v;
+  audio.volume = v / 100;
+  document.getElementById('vol-pct').textContent = v + '%';
+  const icons = ['🔇','🔈','🔉','🔊'];
+  document.getElementById('vol-icon').textContent = icons[Math.min(3, Math.floor(v / 26))];
+}
+
+function toggleShuffle() {
+  state.isShuffle = !state.isShuffle;
+  document.getElementById('shuffle-btn').classList.toggle('active', state.isShuffle);
+}
+
+function toggleRepeat() {
+  const modes = ['none','one','all'];
+  const icons = ['↻','🔂','🔁'];
+  const cur = modes.indexOf(state.repeatMode);
+  state.repeatMode = modes[(cur + 1) % 3];
+  const btn = document.getElementById('repeat-btn');
+  btn.textContent = icons[(cur + 1) % 3];
+  btn.classList.toggle('active', state.repeatMode !== 'none');
+}
+
+// ═══════════════ QUEUE ═══════════════
+function addToQueue(song, priority = false) {
+  const maxQ = document.getElementById('cfg-maxqueue').checked;
+  const maxSize = parseInt(document.getElementById('cfg-maxsize').value) || 20;
+  if (maxQ && state.queue.length >= maxSize) return false;
+  if (priority && state.currentIdx >= 0) {
+    state.queue.splice(state.currentIdx + 1, 0, song);
+  } else {
+    state.queue.push(song);
+  }
+  renderQueue();
+  if (state.queue.length === 1 || state.currentIdx < 0) {
+    state.currentIdx = 0;
+    if (!state.isPlaying) {
+      updateNowPlaying(state.queue[0].title, state.queue[0].artist || '');
+    }
+  }
+  return true;
+}
+
+function removeFromQueue(idx) {
+  state.queue.splice(idx, 1);
+  if (idx <= state.currentIdx) state.currentIdx = Math.max(0, state.currentIdx - 1);
+  renderQueue();
+}
+
+function renderQueue() {
+  const list = document.getElementById('queue-list');
+  const countEl = document.getElementById('queue-count');
+  if (state.queue.length === 0) {
+    list.innerHTML = '<div style="font-size:10px;color:rgba(255,255,255,0.25);padding:6px;text-align:center">Queue is empty</div>';
+    countEl.textContent = '';
+    return;
+  }
+  countEl.textContent = '(' + state.queue.length + ')';
+  list.innerHTML = state.queue.map((s, i) => `
+    <div class="queue-item ${i === state.currentIdx ? 'active' : ''}" onclick="playIndex(${i})">
+      <span class="queue-num">${i + 1}</span>
+      <span class="queue-type ${s.type}">${s.type === 'twitch' ? 'TW' : 'PL'}</span>
+      <span class="queue-title" title="${esc(s.title)}">${esc(s.title)}</span>
+      <button class="queue-del" onclick="event.stopPropagation();removeFromQueue(${i})">✕</button>
+    </div>
+  `).join('');
+}
+
+function esc(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ═══════════════ TWITCH CONNECTION ═══════════════
+function connectTwitch() {
+  const channel = document.getElementById('cfg-channel').value.trim().toLowerCase();
+  const token = document.getElementById('cfg-token').value.trim().replace(/^oauth:/i,'');
+  if (!channel || !token) {
+    setConnectInfo('⚠ Enter channel name and token.', 'var(--lego-red)');
+    return;
+  }
+
+  setConnectInfo('Connecting...', 'var(--lego-yellow)');
+
+  // Connect via Twitch IRC over WebSocket (no server-side needed)
+  if (state.twitchWS) { state.twitchWS.close(); }
+
+  const ws = new WebSocket('wss://irc-ws.chat.twitch.tv:443');
+  state.twitchWS = ws;
+
+  ws.onopen = () => {
+    ws.send('CAP REQ :twitch.tv/commands twitch.tv/tags');
+    ws.send(`PASS oauth:${token}`);
+    ws.send(`NICK ${channel}`);
+    ws.send(`JOIN #${channel}`);
+  };
+
+  ws.onmessage = (event) => {
+    const raw = event.data;
+    if (raw.includes('PING')) { ws.send('PONG :tmi.twitch.tv'); return; }
+    if (raw.includes('Welcome') || raw.includes('366')) {
+      setTwitchConnected(true, channel);
+    }
+    if (raw.includes('RECONNECT')) { setTimeout(() => connectTwitch(), 3000); }
+
+    // Channel Point Redemptions via PRIVMSG (custom-reward-id tag)
+    // Also listen for USERNOTICE with msg-id=rewardgift or custom-reward-id in tags
+    parseTwitchMessage(raw);
+  };
+
+  ws.onerror = () => setConnectInfo('❌ Connection error.', 'var(--lego-red)');
+  ws.onclose = () => {
+    if (state.twitchConnected) {
+      setTwitchConnected(false, '');
+      setConnectInfo('Disconnected. Reconnecting...', 'var(--lego-yellow)');
+      setTimeout(() => connectTwitch(), 5000);
+    }
+  };
+}
+
+function parseTwitchMessage(raw) {
+  // Parse Twitch IRC tags
+  // Format: @key=val;key=val :nick!nick@host PRIVMSG #channel :message
+  const lines = raw.split('\r\n');
+  for (const line of lines) {
+    if (!line.startsWith('@')) continue;
+    const tagEnd = line.indexOf(' ');
+    const tagsStr = line.slice(1, tagEnd);
+    const rest = line.slice(tagEnd + 1);
+
+    const tags = {};
+    tagsStr.split(';').forEach(t => {
+      const [k, v] = t.split('=');
+      tags[k] = v;
+    });
+
+    // Custom reward redemption
+    const rewardId = tags['custom-reward-id'];
+    const displayName = tags['display-name'] || 'viewer';
+    const msgMatch = rest.match(/PRIVMSG #\S+ :(.+)/);
+    const msgBody = msgMatch ? msgMatch[1].trim() : '';
+
+    const rewardName = document.getElementById('cfg-reward-name').value.trim().toLowerCase();
+    const skipName = document.getElementById('cfg-skip-name').value.trim().toLowerCase();
+
+    // If reward-id present: this is a channel point redemption
+    if (rewardId) {
+      // We match by stored reward name via metadata (or just treat all reward redeems)
+      handleRedemption(displayName, msgBody);
+    }
+
+    // Chat command fallback: !song <url>
+    if (msgBody.toLowerCase().startsWith('!song ') || msgBody.toLowerCase().startsWith('!sr ')) {
+      const url = msgBody.split(' ').slice(1).join(' ').trim();
+      if (url) handleRedemption(displayName, url);
+    }
+
+    // Skip command
+    if (msgBody.toLowerCase() === '!skip' || (rewardId && msgBody === '')) {
+      // For skip reward, check if it might be a skip
+      // Simple heuristic: empty body redeems treated by name
+    }
+  }
+}
+
+function handleRedemption(user, songInput) {
+  const title = extractTitle(songInput);
+  const song = {
+    title: title,
+    artist: user + ' (requested)',
+    url: songInput,
+    type: 'twitch',
+    src: 'url'
+  };
+  const priority = document.getElementById('cfg-priority').checked;
+  const added = addToQueue(song, priority);
+
+  // Show notification
+  if (document.getElementById('cfg-notif').checked && added) {
+    showNotification(user, songInput, title);
+  }
+
+  // Auto-play if nothing playing
+  if (!state.isPlaying && state.queue.length === 1) {
+    playIndex(0);
+  }
+}
+
+function extractTitle(input) {
+  try {
+    const u = new URL(input);
+    if (u.hostname.includes('youtube.com')) {
+      const v = u.searchParams.get('v');
+      return v ? 'YouTube: ' + v : 'YouTube Video';
+    }
+    const path = u.pathname;
+    const file = path.split('/').pop();
+    return decodeURIComponent(file.replace(/\.[^.]+$/, '')) || input;
+  } catch {
+    return input.length > 40 ? input.slice(0, 40) + '…' : input;
+  }
+}
+
+function setTwitchConnected(connected, channel) {
+  state.twitchConnected = connected;
+  const badge = document.getElementById('twitch-status-badge');
+  badge.className = 'status-badge ' + (connected ? 'connected' : 'disconnected');
+  badge.textContent = connected ? 'Twitch: ' + channel : 'Twitch: Off';
+  document.getElementById('btn-disconnect').style.display = connected ? 'block' : 'none';
+  setConnectInfo(connected ? '✅ Connected to #' + channel : 'Disconnected.', connected ? 'var(--lego-green)' : 'rgba(255,255,255,0.4)');
+}
+
+function disconnectTwitch() {
+  if (state.twitchWS) { state.twitchWS.close(); state.twitchWS = null; }
+  state.twitchConnected = false;
+  setTwitchConnected(false, '');
+}
+
+function setConnectInfo(msg, color) {
+  const el = document.getElementById('twitch-connect-info');
+  el.textContent = msg;
+  el.style.color = color || 'rgba(255,255,255,0.35)';
+}
+
+// ═══════════════ NOTIFICATION ═══════════════
+let notifTimer;
+function showNotification(user, raw, title) {
+  document.getElementById('notif-user').textContent = user;
+  document.getElementById('notif-song').textContent = title;
+  const el = document.getElementById('redeem-notif');
+  el.classList.add('show');
+  clearTimeout(notifTimer);
+  notifTimer = setTimeout(() => el.classList.remove('show'), 4000);
+}
+
+// ═══════════════ PLAYLIST / FILE UPLOAD ═══════════════
+const uploadArea = document.getElementById('upload-area');
+uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.classList.add('drag-over'); });
+uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('drag-over'));
+uploadArea.addEventListener('drop', e => {
+  e.preventDefault(); uploadArea.classList.remove('drag-over');
+  handleFileUpload(e.dataTransfer.files);
+});
+
+function handleFileUpload(files) {
+  for (const file of files) {
+    if (!file.type.startsWith('audio/') && !file.name.match(/\.(mp3|ogg|wav|flac|m4a|aac)$/i)) continue;
+    const url = URL.createObjectURL(file);
+    const title = file.name.replace(/\.[^.]+$/, '');
+    state.playlist.push({ title, url, src: 'file', type: 'playlist' });
+  }
+  renderPlaylist();
+}
+
+function addUrlToPlaylist() {
+  const input = document.getElementById('url-input');
+  const url = input.value.trim();
+  if (!url) return;
+  const title = extractTitle(url);
+  state.playlist.push({ title, url, src: 'url', type: 'playlist' });
+  input.value = '';
+  renderPlaylist();
+}
+
+function renderPlaylist() {
+  const el = document.getElementById('playlist-items');
+  if (state.playlist.length === 0) {
+    el.innerHTML = '<div style="font-size:9px;color:rgba(255,255,255,0.25);text-align:center;padding:4px">No files loaded</div>';
+    return;
+  }
+  el.innerHTML = state.playlist.map((s, i) => `
+    <div class="playlist-item">
+      <span class="queue-type playlist" style="font-size:7px;padding:1px 3px">♫</span>
+      <span class="pi-name" title="${esc(s.title)}">${esc(s.title)}</span>
+      <button class="pi-del" onclick="removeFromPlaylist(${i})">✕</button>
+    </div>
+  `).join('');
+}
+
+function removeFromPlaylist(idx) {
+  state.playlist.splice(idx, 1);
+  renderPlaylist();
+}
+
+function loadPlaylistToQueue() {
+  for (const s of state.playlist) addToQueue({ ...s });
+  if (!state.isPlaying && state.queue.length > 0 && state.currentIdx < 0) playIndex(0);
+}
+
+function clearPlaylist() {
+  state.playlist = [];
+  renderPlaylist();
+}
+
+// ═══════════════ DISPLAY SETTINGS ═══════════════
+function toggleStuds(on) {
+  document.getElementById('stud-pattern').style.opacity = on ? '1' : '0';
+}
+
+function toggleEqAnim(on) {
+  const eq = document.getElementById('equalizer');
+  eq.querySelectorAll('.eq-bar').forEach(b => {
+    b.style.animationPlayState = (on && state.isPlaying) ? 'running' : 'paused';
+  });
+}
+
+const accentVars = {
+  yellow: { panel: '#F5C400', settings: '#006DB7' },
+  red:    { panel: '#D01012', settings: '#006DB7' },
+  blue:   { panel: '#006DB7', settings: '#D01012' },
+  green:  { panel: '#00A650', settings: '#F5C400' }
+};
+
+function setAccent(val) {
+  const acc = accentVars[val] || accentVars.yellow;
+  document.documentElement.style.setProperty('--lego-yellow', acc.panel);
+  document.documentElement.style.setProperty('--lego-blue', acc.settings);
+}
+
+// ═══════════════ SAVE/LOAD SETTINGS ═══════════════
+function saveSettings() {
+  const cfg = {
+    channel: document.getElementById('cfg-channel').value,
+    token: document.getElementById('cfg-token').value,
+    clientId: document.getElementById('cfg-clientid').value,
+    rewardName: document.getElementById('cfg-reward-name').value,
+    skipName: document.getElementById('cfg-skip-name').value,
+    sourceType: document.getElementById('cfg-source-type').value,
+    autoFulfill: document.getElementById('cfg-autofulfill').checked,
+    notif: document.getElementById('cfg-notif').checked,
+    priority: document.getElementById('cfg-priority').checked,
+    maxQueue: document.getElementById('cfg-maxqueue').checked,
+    maxSize: document.getElementById('cfg-maxsize').value,
+    accent: document.getElementById('cfg-accent').value,
+    studs: document.getElementById('cfg-studs').checked,
+    eq: document.getElementById('cfg-eq').checked,
+    volume: state.volume
+  };
+  try {
+    localStorage.setItem('lego-overlay-cfg', JSON.stringify(cfg));
+    setConnectInfo('✅ Settings saved!', 'var(--lego-green)');
+    setTimeout(() => setConnectInfo('Enter credentials and click Connect.', ''), 2000);
+  } catch(e) { setConnectInfo('⚠ Could not save (localStorage unavailable).', 'var(--lego-red)'); }
+}
+
+function loadSettings() {
+  try {
+    const raw = localStorage.getItem('lego-overlay-cfg');
+    if (!raw) return;
+    const cfg = JSON.parse(raw);
+    if (cfg.channel) document.getElementById('cfg-channel').value = cfg.channel;
+    if (cfg.token) document.getElementById('cfg-token').value = cfg.token;
+    if (cfg.clientId) document.getElementById('cfg-clientid').value = cfg.clientId;
+    if (cfg.rewardName) document.getElementById('cfg-reward-name').value = cfg.rewardName;
+    if (cfg.skipName) document.getElementById('cfg-skip-name').value = cfg.skipName;
+    if (cfg.sourceType) document.getElementById('cfg-source-type').value = cfg.sourceType;
+    document.getElementById('cfg-autofulfill').checked = cfg.autoFulfill !== false;
+    document.getElementById('cfg-notif').checked = cfg.notif !== false;
+    if (cfg.priority) document.getElementById('cfg-priority').checked = true;
+    if (cfg.maxQueue) {
+      document.getElementById('cfg-maxqueue').checked = true;
+      document.getElementById('max-queue-row').style.display = 'block';
+    }
+    if (cfg.maxSize) document.getElementById('cfg-maxsize').value = cfg.maxSize;
+    if (cfg.accent) { document.getElementById('cfg-accent').value = cfg.accent; setAccent(cfg.accent); }
+    if (cfg.studs) { document.getElementById('cfg-studs').checked = true; toggleStuds(true); }
+    if (cfg.eq === false) { document.getElementById('cfg-eq').checked = false; }
+    if (cfg.volume !== undefined) {
+      state.volume = cfg.volume;
+      document.getElementById('vol-slider').value = cfg.volume;
+      setVolume(cfg.volume);
+    }
+  } catch(e) { console.warn('Could not load settings', e); }
+}
+
+// ═══════════════ INIT ═══════════════
+loadSettings();
+renderQueue();
+
+// Keyboard shortcuts
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+  if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
+  if (e.code === 'ArrowRight') nextSong();
+  if (e.code === 'ArrowLeft') prevSong();
+});
+
+console.log('%c🧱 LEGO Music Overlay Loaded', 'color:#F5C400;font-weight:bold;font-size:14px');
+console.log('Keyboard: Space=Play/Pause  ←→=Skip');
+</script>
+</body>
+</html>
