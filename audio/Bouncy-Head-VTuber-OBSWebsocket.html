@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Terrence &amp; Philip Avatar — OBS</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:transparent; overflow:hidden; font-family:'Courier New',monospace; user-select:none; width:100vw; height:100vh; }
+#stage { position:relative; width:100vw; height:100vh; }
+#character { position:absolute; left:50%; top:45%; transform:translate(-50%,-50%); cursor:move; filter:drop-shadow(0 8px 24px rgba(0,0,0,0.6)); }
+
+/* PANEL */
+#panel { position:absolute; top:12px; right:12px; width:320px; background:#0d0d0d; border:1px solid #2a2a2a; border-radius:10px; color:#ccc; font-size:11px; z-index:20; box-shadow:0 8px 32px rgba(0,0,0,0.85); transition:opacity 0.2s; }
+#panel.hidden { opacity:0; pointer-events:none; }
+#panelHeader { display:flex; align-items:center; justify-content:space-between; padding:8px 12px; background:#161616; border-radius:10px 10px 0 0; border-bottom:1px solid #222; gap:6px; }
+#panelTitle { font-size:11px; font-weight:bold; color:#e74c3c; letter-spacing:1px; white-space:nowrap; }
+
+#connBtn { padding:5px 9px; background:#c0392b; color:white; border:none; border-radius:6px; cursor:pointer; font-size:10px; font-family:inherit; font-weight:bold; transition:background 0.15s; white-space:nowrap; }
+#connBtn:hover { background:#e74c3c; }
+#connBtn.active { background:#27ae60; }
+#connBtn.active:hover { background:#2ecc71; }
+#connStatus { font-size:9px; color:#555; white-space:nowrap; }
+#connStatus.ok { color:#27ae60; }
+#connStatus.err { color:#e74c3c; }
+
+/* OBS connect form */
+#obsForm { padding:10px 12px 12px; border-bottom:1px solid #1e1e1e; }
+.obs-row { display:grid; grid-template-columns:80px 1fr; align-items:center; gap:6px; margin-bottom:6px; }
+.obs-row label { color:#888; font-size:10px; }
+.obs-row input[type=text], .obs-row input[type=password], .obs-row input[type=number] {
+  background:#111; border:1px solid #2a2a2a; color:#fff; border-radius:4px;
+  padding:4px 7px; font-size:10px; font-family:inherit; width:100%;
+}
+.obs-row input:focus { outline:none; border-color:#e74c3c; }
+#inputSelect { background:#111; border:1px solid #2a2a2a; color:#fff; border-radius:4px; padding:4px 7px; font-size:10px; font-family:inherit; width:100%; cursor:pointer; }
+#inputSelect:focus { outline:none; border-color:#e74c3c; }
+#refreshInputs { padding:3px 8px; background:#1e1e1e; color:#888; border:1px solid #2a2a2a; border-radius:4px; cursor:pointer; font-size:10px; font-family:inherit; margin-top:2px; transition:all 0.15s; width:100%; }
+#refreshInputs:hover { background:#2a2a2a; color:#ccc; }
+
+.tabs { display:flex; border-bottom:1px solid #222; background:#111; overflow:hidden; }
+.tab { flex:1; padding:7px 0; text-align:center; cursor:pointer; color:#555; font-size:9px; letter-spacing:0.4px; border-bottom:2px solid transparent; transition:all 0.15s; font-family:inherit; }
+.tab:hover { color:#aaa; background:#161616; }
+.tab.active { color:#e74c3c; border-bottom-color:#e74c3c; background:#0d0d0d; }
+
+.page { display:none; padding:10px 12px 14px; max-height:380px; overflow-y:auto; }
+.page.active { display:block; }
+.page::-webkit-scrollbar { width:4px; }
+.page::-webkit-scrollbar-track { background:#111; }
+.page::-webkit-scrollbar-thumb { background:#333; border-radius:2px; }
+
+.sec { font-size:9px; letter-spacing:1.5px; color:#e74c3c; text-transform:uppercase; margin:10px 0 6px; padding-bottom:3px; border-bottom:1px solid #1e1e1e; }
+.sec:first-child { margin-top:2px; }
+
+.cr { display:grid; grid-template-columns:112px 1fr 40px; align-items:center; gap:6px; margin-bottom:5px; }
+.cr label { color:#888; font-size:10px; }
+.cr input[type=range] { width:100%; accent-color:#e74c3c; cursor:pointer; }
+.cr .val { color:#fff; font-size:10px; text-align:right; }
+
+.ck { display:flex; align-items:center; gap:8px; margin-bottom:7px; cursor:pointer; }
+.ck input[type=checkbox] { accent-color:#e74c3c; width:13px; height:13px; cursor:pointer; }
+.ck label { color:#888; font-size:10px; cursor:pointer; }
+
+#volWrap { background:#1a1a1a; border-radius:3px; height:5px; overflow:hidden; margin-bottom:8px; }
+#volBar { height:100%; width:0%; background:#27ae60; border-radius:3px; }
+
+.live { display:grid; grid-template-columns:1fr 1fr; gap:4px; margin-top:4px; }
+.lv { background:#111; border:1px solid #1e1e1e; border-radius:4px; padding:4px 6px; }
+.lv-label { color:#555; font-size:9px; }
+.lv-val { color:#0f0; font-size:11px; font-weight:bold; font-family:'Courier New',monospace; }
+
+.reset-btn { width:100%; padding:6px; background:#1e1e1e; color:#888; border:1px solid #2a2a2a; border-radius:5px; cursor:pointer; font-size:10px; font-family:inherit; margin-top:8px; transition:all 0.15s; }
+.reset-btn:hover { background:#2a2a2a; color:#ccc; }
+
+#togglePanel { position:absolute; bottom:16px; right:16px; background:rgba(0,0,0,0.7); color:#666; border:1px solid #222; padding:5px 11px; border-radius:6px; cursor:pointer; font-size:11px; font-family:'Courier New',monospace; z-index:10; }
+#togglePanel:hover { color:#ccc; }
+</style>
+</head>
+<body>
+<div id="stage">
+<svg id="character" width="280" height="380" viewBox="0 0 280 380" xmlns="http://www.w3.org/2000/svg">
+  <rect x="75" y="240" width="130" height="120" rx="16" fill="#1a6e2a"/>
+  <polygon points="115,240 140,270 165,240" fill="#145720"/>
+  <rect x="40" y="248" width="40" height="84" rx="18" fill="#145720"/>
+  <rect x="200" y="248" width="40" height="84" rx="18" fill="#145720"/>
+  <rect x="88" y="336" width="38" height="36" rx="10" fill="#145720"/>
+  <rect x="154" y="336" width="38" height="36" rx="10" fill="#145720"/>
+  <ellipse cx="107" cy="372" rx="22" ry="8" fill="#0d3d16"/>
+  <ellipse cx="173" cy="372" rx="22" ry="8" fill="#0d3d16"/>
+  <g id="headBob">
+    <g id="jawHalf">
+      <rect x="62" y="172" width="156" height="62" fill="#f5c98a"/>
+      <rect x="70" y="222" width="140" height="22" rx="12" fill="#f5c98a"/>
+      <ellipse cx="80" cy="202" rx="16" ry="10" fill="#e8956a" opacity="0.4"/>
+      <ellipse cx="200" cy="202" rx="16" ry="10" fill="#e8956a" opacity="0.4"/>
+      <rect x="60" y="169" width="160" height="6" fill="#8a5c20"/>
+    </g>
+    <g id="teethGroup" style="display:none">
+      <rect x="93" y="161" width="94" height="14" rx="3" fill="white"/>
+      <line x1="117" y1="161" x2="117" y2="175" stroke="#ddd" stroke-width="1.5"/>
+      <line x1="140" y1="161" x2="140" y2="175" stroke="#ddd" stroke-width="1.5"/>
+      <line x1="163" y1="161" x2="163" y2="175" stroke="#ddd" stroke-width="1.5"/>
+      <rect x="93" y="171" width="94" height="8" fill="#6b0000" opacity="0.7"/>
+    </g>
+    <g id="topHalf">
+      <rect x="48" y="88" width="184" height="14" rx="5" fill="#111"/>
+      <rect x="62" y="44" width="156" height="48" rx="8" fill="#222"/>
+      <rect x="62" y="78" width="156" height="13" fill="#333"/>
+      <rect x="72" y="52" width="40" height="8" rx="4" fill="#3a3a3a" opacity="0.5"/>
+      <rect x="62" y="102" width="156" height="70" fill="#f5c98a"/>
+      <rect x="56" y="118" width="10" height="42" rx="4" fill="#f0c080"/>
+      <rect x="214" y="118" width="10" height="42" rx="4" fill="#f0c080"/>
+      <ellipse cx="104" cy="132" rx="20" ry="22" fill="white"/>
+      <ellipse cx="176" cy="132" rx="20" ry="22" fill="white"/>
+      <circle id="lp" cx="104" cy="132" r="10" fill="#1a1a2e"/>
+      <circle id="rp" cx="176" cy="132" r="10" fill="#1a1a2e"/>
+      <circle cx="108" cy="127" r="3.5" fill="white"/>
+      <circle cx="180" cy="127" r="3.5" fill="white"/>
+      <rect id="lb" x="84" y="109" width="40" height="8" rx="4" fill="#2c2c2c"/>
+      <rect id="rb" x="156" y="109" width="40" height="8" rx="4" fill="#2c2c2c"/>
+      <rect x="60" y="167" width="160" height="6" fill="#c8903a"/>
+    </g>
+  </g>
+</svg>
+</div>
+
+<!-- ══ PANEL ══ -->
+<div id="panel">
+  <div id="panelHeader">
+    <span id="panelTitle">&#127908; AVATAR — OBS</span>
+    <span id="connStatus">disconnected</span>
+    <button id="connBtn">Connect</button>
+  </div>
+
+  <!-- OBS connection form -->
+  <div id="obsForm">
+    <div class="obs-row">
+      <label>Host</label>
+      <input type="text" id="obsHost" value="localhost" placeholder="localhost">
+    </div>
+    <div class="obs-row">
+      <label>Port</label>
+      <input type="number" id="obsPort" value="4455" placeholder="4455">
+    </div>
+    <div class="obs-row">
+      <label>Password</label>
+      <input type="password" id="obsPass" value="" placeholder="(leave blank if none)">
+    </div>
+    <div class="obs-row">
+      <label>Audio Input</label>
+      <select id="inputSelect"><option value="">— connect first —</option></select>
+    </div>
+    <button id="refreshInputs">&#8635; Refresh Input List</button>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="audio">AUDIO</div>
+    <div class="tab" data-tab="jaw">JAW</div>
+    <div class="tab" data-tab="top">TOP</div>
+    <div class="tab" data-tab="head">HEAD</div>
+    <div class="tab" data-tab="eyes">EYES</div>
+    <div class="tab" data-tab="live">LIVE</div>
+  </div>
+
+  <!-- AUDIO -->
+  <div class="page active" id="tab-audio">
+    <div class="sec">Input Level</div>
+    <div id="volWrap"><div id="volBar"></div></div>
+    <div class="cr"><label>Sensitivity</label><input type="range" id="sens" min="0.5" max="10" value="3" step="0.1"><span class="val" id="sensV">3.0</span></div>
+    <div class="cr"><label>Gain Mult</label><input type="range" id="gainMult" min="0.2" max="5" value="1.0" step="0.1"><span class="val" id="gainMultV">1.0</span></div>
+    <div class="sec">Smoothing</div>
+    <div class="cr"><label>Vol Attack</label><input type="range" id="volAtk" min="0.1" max="0.95" value="0.6" step="0.01"><span class="val" id="volAtkV">0.60</span></div>
+    <div class="cr"><label>Vol Release</label><input type="range" id="volRel" min="0.5" max="0.99" value="0.88" step="0.01"><span class="val" id="volRelV">0.88</span></div>
+    <div class="cr"><label>Open Attack</label><input type="range" id="openAtk" min="0.1" max="0.95" value="0.65" step="0.01"><span class="val" id="openAtkV">0.65</span></div>
+    <div class="cr"><label>Open Release</label><input type="range" id="openRel" min="0.5" max="0.99" value="0.80" step="0.01"><span class="val" id="openRelV">0.80</span></div>
+    <div class="sec">Channel</div>
+    <div class="cr"><label>Use Channel</label>
+      <select id="chanSelect" style="background:#111;border:1px solid #2a2a2a;color:#fff;border-radius:4px;padding:3px 6px;font-size:10px;font-family:inherit;flex:1">
+        <option value="peak">Peak (loudest ch)</option>
+        <option value="0">Channel 1 (L)</option>
+        <option value="1">Channel 2 (R)</option>
+      </select>
+      <span class="val"></span>
+    </div>
+    <button class="reset-btn" data-reset="audio">&#8635; Reset Audio Defaults</button>
+  </div>
+
+  <!-- JAW -->
+  <div class="page" id="tab-jaw">
+    <div class="sec">Mouth Opening</div>
+    <div class="cr"><label>Open Pixels</label><input type="range" id="openPx" min="0" max="60" value="18" step="1"><span class="val" id="openPxV">18</span></div>
+    <div class="cr"><label>Open Threshold</label><input type="range" id="openThresh" min="0.01" max="0.3" value="0.07" step="0.01"><span class="val" id="openThreshV">0.07</span></div>
+    <div class="sec">Jaw Rock Physics</div>
+    <div class="cr"><label>Kick Scale</label><input type="range" id="jawKickScale" min="1" max="40" value="20" step="1"><span class="val" id="jawKickScaleV">20</span></div>
+    <div class="cr"><label>Kick Random</label><input type="range" id="jawKickRand" min="0" max="5" value="1.5" step="0.1"><span class="val" id="jawKickRandV">1.5</span></div>
+    <div class="cr"><label>Max Kick</label><input type="range" id="jawKickMax" min="1" max="15" value="5" step="0.5"><span class="val" id="jawKickMaxV">5.0</span></div>
+    <div class="cr"><label>Spring Stiff</label><input type="range" id="jawSpring" min="0.01" max="0.5" value="0.18" step="0.01"><span class="val" id="jawSpringV">0.18</span></div>
+    <div class="cr"><label>Damping</label><input type="range" id="jawDamp" min="0.5" max="0.99" value="0.82" step="0.01"><span class="val" id="jawDampV">0.82</span></div>
+    <div class="cr"><label>Bounce</label><input type="range" id="jawBounce" min="0" max="0.8" value="0.3" step="0.05"><span class="val" id="jawBounceV">0.30</span></div>
+    <div class="cr"><label>Max Angle</label><input type="range" id="jawMax" min="5" max="45" value="20" step="1"><span class="val" id="jawMaxV">20</span></div>
+    <div class="cr"><label>Dir Change %</label><input type="range" id="jawDirChance" min="0" max="1" value="0.35" step="0.05"><span class="val" id="jawDirChanceV">0.35</span></div>
+    <div class="sec">Transient Trigger</div>
+    <div class="cr"><label>Delta Trigger</label><input type="range" id="deltaTrig" min="0.005" max="0.3" value="0.04" step="0.005"><span class="val" id="deltaTrigV">0.040</span></div>
+    <button class="reset-btn" data-reset="jaw">&#8635; Reset Jaw Defaults</button>
+  </div>
+
+  <!-- TOP -->
+  <div class="page" id="tab-top">
+    <div class="sec">Top Rock Physics</div>
+    <div class="cr"><label>Kick Scale</label><input type="range" id="topKickScale" min="1" max="40" value="18" step="1"><span class="val" id="topKickScaleV">18</span></div>
+    <div class="cr"><label>Kick Random</label><input type="range" id="topKickRand" min="0" max="5" value="2.0" step="0.1"><span class="val" id="topKickRandV">2.0</span></div>
+    <div class="cr"><label>Max Kick</label><input type="range" id="topKickMax" min="1" max="15" value="6" step="0.5"><span class="val" id="topKickMaxV">6.0</span></div>
+    <div class="cr"><label>Spring Stiff</label><input type="range" id="topSpring" min="0.01" max="0.5" value="0.16" step="0.01"><span class="val" id="topSpringV">0.16</span></div>
+    <div class="cr"><label>Damping</label><input type="range" id="topDamp" min="0.5" max="0.99" value="0.80" step="0.01"><span class="val" id="topDampV">0.80</span></div>
+    <div class="cr"><label>Bounce</label><input type="range" id="topBounce" min="0" max="0.8" value="0.35" step="0.05"><span class="val" id="topBounceV">0.35</span></div>
+    <div class="cr"><label>Max Angle</label><input type="range" id="topMax" min="5" max="45" value="22" step="1"><span class="val" id="topMaxV">22</span></div>
+    <div class="sec">Top Lift — Beat Pop</div>
+    <div class="cr"><label>Lift Scale</label><input type="range" id="topLiftScale" min="1" max="50" value="15" step="1"><span class="val" id="topLiftScaleV">15</span></div>
+    <div class="cr"><label>Max Lift</label><input type="range" id="topLiftMax" min="2" max="30" value="7" step="1"><span class="val" id="topLiftMaxV">7</span></div>
+    <div class="cr"><label>Lift Spring</label><input type="range" id="topLiftSpring" min="0.01" max="0.5" value="0.20" step="0.01"><span class="val" id="topLiftSpringV">0.20</span></div>
+    <div class="cr"><label>Lift Damping</label><input type="range" id="topLiftDamp" min="0.5" max="0.99" value="0.74" step="0.01"><span class="val" id="topLiftDampV">0.74</span></div>
+    <div class="cr"><label>Lift Ceiling px</label><input type="range" id="topLiftCeil" min="2" max="30" value="18" step="1"><span class="val" id="topLiftCeilV">18</span></div>
+    <button class="reset-btn" data-reset="top">&#8635; Reset Top Defaults</button>
+  </div>
+
+  <!-- HEAD -->
+  <div class="page" id="tab-head">
+    <div class="sec">Whole-Head Bob</div>
+    <div class="cr"><label>Bob Scale</label><input type="range" id="bobScale" min="1" max="50" value="24" step="1"><span class="val" id="bobScaleV">24</span></div>
+    <div class="cr"><label>Max Bob</label><input type="range" id="bobMax" min="2" max="40" value="12" step="1"><span class="val" id="bobMaxV">12</span></div>
+    <div class="cr"><label>Spring Stiff</label><input type="range" id="bobSpring" min="0.01" max="0.5" value="0.22" step="0.01"><span class="val" id="bobSpringV">0.22</span></div>
+    <div class="cr"><label>Damping</label><input type="range" id="bobDamp" min="0.5" max="0.99" value="0.72" step="0.01"><span class="val" id="bobDampV">0.72</span></div>
+    <div class="cr"><label>Bounce</label><input type="range" id="bobBounce" min="0" max="0.8" value="0.3" step="0.05"><span class="val" id="bobBounceV">0.30</span></div>
+    <div class="cr"><label>Up Limit px</label><input type="range" id="bobUpLim" min="2" max="40" value="26" step="1"><span class="val" id="bobUpLimV">26</span></div>
+    <div class="cr"><label>Down Limit px</label><input type="range" id="bobDownLim" min="0" max="20" value="6" step="1"><span class="val" id="bobDownLimV">6</span></div>
+    <div class="sec">Character</div>
+    <div class="cr"><label>Size Scale</label><input type="range" id="charScale" min="0.4" max="2.0" value="1.0" step="0.05"><span class="val" id="charScaleV">1.00</span></div>
+    <button class="reset-btn" data-reset="head">&#8635; Reset Head Defaults</button>
+  </div>
+
+  <!-- EYES -->
+  <div class="page" id="tab-eyes">
+    <div class="sec">Eye Movement</div>
+    <div class="cr"><label>Wander X</label><input type="range" id="eyeRangeX" min="0" max="20" value="10" step="1"><span class="val" id="eyeRangeXV">10</span></div>
+    <div class="cr"><label>Wander Y</label><input type="range" id="eyeRangeY" min="0" max="12" value="6" step="1"><span class="val" id="eyeRangeYV">6</span></div>
+    <div class="cr"><label>Extra X (loud)</label><input type="range" id="eyeExtraX" min="0" max="15" value="6" step="1"><span class="val" id="eyeExtraXV">6</span></div>
+    <div class="cr"><label>Extra Y (loud)</label><input type="range" id="eyeExtraY" min="0" max="10" value="4" step="1"><span class="val" id="eyeExtraYV">4</span></div>
+    <div class="cr"><label>Lerp Speed</label><input type="range" id="eyeLerp" min="0.01" max="0.4" value="0.12" step="0.01"><span class="val" id="eyeLerpV">0.12</span></div>
+    <div class="cr"><label>Clamp X</label><input type="range" id="eyeMaxX" min="2" max="16" value="8" step="1"><span class="val" id="eyeMaxXV">8</span></div>
+    <div class="cr"><label>Clamp Y</label><input type="range" id="eyeMaxY" min="1" max="10" value="5" step="1"><span class="val" id="eyeMaxYV">5</span></div>
+    <div class="cr"><label>Timer Min</label><input type="range" id="eyeTimerMin" min="5" max="60" value="20" step="1"><span class="val" id="eyeTimerMinV">20</span></div>
+    <div class="cr"><label>Timer Range</label><input type="range" id="eyeTimerRange" min="10" max="200" value="80" step="5"><span class="val" id="eyeTimerRangeV">80</span></div>
+    <div class="cr"><label>Loud Threshold</label><input type="range" id="eyeLoudThresh" min="0.01" max="0.5" value="0.08" step="0.01"><span class="val" id="eyeLoudThreshV">0.08</span></div>
+    <div class="sec">Blinking</div>
+    <div class="ck"><input type="checkbox" id="blinkEnable" checked><label for="blinkEnable">Enable Blinking</label></div>
+    <div class="cr"><label>Blink Min</label><input type="range" id="blinkMin" min="20" max="200" value="70" step="5"><span class="val" id="blinkMinV">70</span></div>
+    <div class="cr"><label>Blink Range</label><input type="range" id="blinkRange" min="10" max="300" value="160" step="10"><span class="val" id="blinkRangeV">160</span></div>
+    <div class="cr"><label>Speed ms</label><input type="range" id="blinkDur" min="30" max="300" value="90" step="10"><span class="val" id="blinkDurV">90</span></div>
+    <div class="cr"><label>Vary ms</label><input type="range" id="blinkVary" min="0" max="100" value="40" step="5"><span class="val" id="blinkVaryV">40</span></div>
+    <button class="reset-btn" data-reset="eyes">&#8635; Reset Eyes Defaults</button>
+  </div>
+
+  <!-- LIVE -->
+  <div class="page" id="tab-live">
+    <div class="sec">Audio State</div>
+    <div class="live">
+      <div class="lv"><div class="lv-label">RAW VOL</div><div class="lv-val" id="lv-rawVol">0.000</div></div>
+      <div class="lv"><div class="lv-label">SMOOTH VOL</div><div class="lv-val" id="lv-smoothVol">0.000</div></div>
+      <div class="lv"><div class="lv-label">SMOOTH OPEN</div><div class="lv-val" id="lv-smoothOpen">0.000</div></div>
+      <div class="lv"><div class="lv-label">DELTA</div><div class="lv-val" id="lv-delta">0.000</div></div>
+    </div>
+    <div class="sec">Jaw Physics</div>
+    <div class="live">
+      <div class="lv"><div class="lv-label">JAW POS °</div><div class="lv-val" id="lv-rockPos">0.00</div></div>
+      <div class="lv"><div class="lv-label">JAW VEL</div><div class="lv-val" id="lv-rockVel">0.00</div></div>
+    </div>
+    <div class="sec">Top Physics</div>
+    <div class="live">
+      <div class="lv"><div class="lv-label">TOP ROCK °</div><div class="lv-val" id="lv-topRockPos">0.00</div></div>
+      <div class="lv"><div class="lv-label">TOP VEL</div><div class="lv-val" id="lv-topRockVel">0.00</div></div>
+      <div class="lv"><div class="lv-label">TOP LIFT px</div><div class="lv-val" id="lv-topLiftPos">0.00</div></div>
+      <div class="lv"><div class="lv-label">NEXT DIR</div><div class="lv-val" id="lv-topDir">+1</div></div>
+    </div>
+    <div class="sec">Head Bob</div>
+    <div class="live">
+      <div class="lv"><div class="lv-label">BOB POS px</div><div class="lv-val" id="lv-liftPos">0.00</div></div>
+      <div class="lv"><div class="lv-label">BOB VEL</div><div class="lv-val" id="lv-liftVel">0.00</div></div>
+    </div>
+    <div class="sec">Eyes</div>
+    <div class="live">
+      <div class="lv"><div class="lv-label">EYE X</div><div class="lv-val" id="lv-eyeX">0.00</div></div>
+      <div class="lv"><div class="lv-label">EYE Y</div><div class="lv-val" id="lv-eyeY">0.00</div></div>
+      <div class="lv"><div class="lv-label">EYE TIMER</div><div class="lv-val" id="lv-eyeTimer">0</div></div>
+      <div class="lv"><div class="lv-label">BLINK</div><div class="lv-val" id="lv-blink">OFF</div></div>
+    </div>
+    <div class="sec">OBS WebSocket</div>
+    <div class="live">
+      <div class="lv"><div class="lv-label">WS STATE</div><div class="lv-val" id="lv-wsState">CLOSED</div></div>
+      <div class="lv"><div class="lv-label">INPUT</div><div class="lv-val" id="lv-input" style="font-size:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">—</div></div>
+      <div class="lv"><div class="lv-label">RAW MUL L</div><div class="lv-val" id="lv-mulL">0.000</div></div>
+      <div class="lv"><div class="lv-label">RAW MUL R</div><div class="lv-val" id="lv-mulR">0.000</div></div>
+    </div>
+  </div>
+</div>
+
+<button id="togglePanel">&#9881; CONTROLS</button>
+
+<script>
+// ── SVG refs ──
+const headBob  = document.getElementById('headBob');
+const jawHalf  = document.getElementById('jawHalf');
+const topHalf  = document.getElementById('topHalf');
+const teethGrp = document.getElementById('teethGroup');
+const lp = document.getElementById('lp');
+const rp = document.getElementById('rp');
+const lb = document.getElementById('lb');
+const rb = document.getElementById('rb');
+const character  = document.getElementById('character');
+const volBar     = document.getElementById('volBar');
+const connStatus = document.getElementById('connStatus');
+
+// ── Physics state ──
+let smoothVol = 0, smoothOpen = 0, prevRaw = 0;
+let rockPos = 0, rockVel = 0, nextRockDir = Math.random() > 0.5 ? 1 : -1;
+let topRockPos = 0, topRockVel = 0, nextTopRockDir = Math.random() > 0.5 ? 1 : -1;
+let topLiftPos = 0, topLiftVel = 0;
+let liftPos = 0, liftVel = 0;
+let blinkT = 0, blinkActive = false;
+let eyeX = 0, eyeY = 0, eyeTX = 0, eyeTY = 0, eyeTimer = 0;
+let isAnimating = false;
+let raf;
+
+// ── OBS WebSocket state ──
+let ws = null;
+let obsConnected = false;
+let lastVolumeData = { L: 0, R: 0 };  // raw multiplier from OBS
+let currentInputName = '';
+let reqId = 1;
+const pendingReqs = {};
+
+function gv(id) { return parseFloat(document.getElementById(id).value); }
+
+// ── Slider wiring ──
+const sliders = [
+  ['sens',1],['gainMult',1],
+  ['volAtk',2],['volRel',2],['openAtk',2],['openRel',2],
+  ['openPx',0],['openThresh',2],
+  ['jawKickScale',0],['jawKickRand',1],['jawKickMax',1],['jawSpring',2],['jawDamp',2],['jawBounce',2],['jawMax',0],['jawDirChance',2],['deltaTrig',3],
+  ['topKickScale',0],['topKickRand',1],['topKickMax',1],['topSpring',2],['topDamp',2],['topBounce',2],['topMax',0],
+  ['topLiftScale',0],['topLiftMax',0],['topLiftSpring',2],['topLiftDamp',2],['topLiftCeil',0],
+  ['bobScale',0],['bobMax',0],['bobSpring',2],['bobDamp',2],['bobBounce',2],['bobUpLim',0],['bobDownLim',0],['charScale',2],
+  ['eyeRangeX',0],['eyeRangeY',0],['eyeExtraX',0],['eyeExtraY',0],['eyeLerp',2],['eyeMaxX',0],['eyeMaxY',0],
+  ['eyeTimerMin',0],['eyeTimerRange',0],['eyeLoudThresh',2],
+  ['blinkMin',0],['blinkRange',0],['blinkDur',0],['blinkVary',0],
+];
+sliders.forEach(([id, dec]) => {
+  const el = document.getElementById(id);
+  const disp = document.getElementById(id + 'V');
+  if (el && disp) el.addEventListener('input', () => { disp.textContent = parseFloat(el.value).toFixed(dec); });
+});
+
+// ── Tabs ──
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+  });
+});
+
+// ── Reset defaults ──
+const DEFAULTS = {
+  audio: { sens:3.0, gainMult:1.0, volAtk:0.60, volRel:0.88, openAtk:0.65, openRel:0.80 },
+  jaw:   { openPx:18, openThresh:0.07, jawKickScale:20, jawKickRand:1.5, jawKickMax:5, jawSpring:0.18, jawDamp:0.82, jawBounce:0.30, jawMax:20, jawDirChance:0.35, deltaTrig:0.04 },
+  top:   { topKickScale:18, topKickRand:2.0, topKickMax:6, topSpring:0.16, topDamp:0.80, topBounce:0.35, topMax:22, topLiftScale:15, topLiftMax:7, topLiftSpring:0.20, topLiftDamp:0.74, topLiftCeil:18 },
+  head:  { bobScale:24, bobMax:12, bobSpring:0.22, bobDamp:0.72, bobBounce:0.30, bobUpLim:26, bobDownLim:6, charScale:1.0 },
+  eyes:  { eyeRangeX:10, eyeRangeY:6, eyeExtraX:6, eyeExtraY:4, eyeLerp:0.12, eyeMaxX:8, eyeMaxY:5, eyeTimerMin:20, eyeTimerRange:80, eyeLoudThresh:0.08, blinkMin:70, blinkRange:160, blinkDur:90, blinkVary:40 },
+};
+document.querySelectorAll('.reset-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    Object.entries(DEFAULTS[btn.dataset.reset] || {}).forEach(([id, val]) => {
+      const el = document.getElementById(id);
+      const disp = document.getElementById(id + 'V');
+      if (el) el.value = val;
+      if (disp) { const dec = (sliders.find(s=>s[0]===id)||[id,0])[1]; disp.textContent = parseFloat(val).toFixed(dec); }
+    });
+  });
+});
+
+document.getElementById('charScale').addEventListener('input', () => {
+  character.style.transform = `translate(-50%,-50%) scale(${gv('charScale')})`;
+});
+
+// ── Drag ──
+let dragging = false, ox = 0, oy = 0;
+character.addEventListener('mousedown', e => { dragging=true; const r=character.getBoundingClientRect(); ox=e.clientX-r.left; oy=e.clientY-r.top; e.preventDefault(); });
+document.addEventListener('mousemove', e => { if(!dragging) return; character.style.left=(e.clientX-ox)+'px'; character.style.top=(e.clientY-oy)+'px'; character.style.transform=`scale(${gv('charScale')})`; });
+document.addEventListener('mouseup', () => { dragging=false; });
+
+// ══════════════════════════════════════════
+//  OBS WebSocket 5.x — raw implementation
+//  (no external libraries needed)
+// ══════════════════════════════════════════
+
+// EventSubscription flags (obs-websocket 5.x)
+const EventSub = {
+  None:               0,
+  General:            1 << 0,
+  Config:             1 << 1,
+  Scenes:             1 << 2,
+  Inputs:             1 << 3,
+  Transitions:        1 << 4,
+  Filters:            1 << 5,
+  Outputs:            1 << 6,
+  SceneItems:         1 << 7,
+  MediaInputs:        1 << 8,
+  Vendors:            1 << 9,
+  Ui:                 1 << 10,
+  All:                (1 << 11) - 1,
+  InputVolumeMeters:  1 << 16,   // high-volume event — must opt in
+  InputActiveStateChanged: 1 << 17,
+  InputShowStateChanged:   1 << 18,
+  SceneItemTransformChanged: 1 << 19,
+};
+
+async function sha256(message) {
+  const msgBuf = new TextEncoder().encode(message);
+  const hashBuf = await crypto.subtle.digest('SHA-256', msgBuf);
+  return btoa(String.fromCharCode(...new Uint8Array(hashBuf)));
+}
+
+async function buildAuth(password, salt, challenge) {
+  // OBS auth: base64(sha256(base64(sha256(password + salt)) + challenge))
+  const step1 = await sha256(password + salt);
+  return sha256(step1 + challenge);
+}
+
+function obsConnect() {
+  const host = document.getElementById('obsHost').value.trim() || 'localhost';
+  const port = document.getElementById('obsPort').value.trim() || '4455';
+  const url  = `ws://${host}:${port}`;
+
+  setStatus('connecting…', '');
+
+  if (ws) { try { ws.close(); } catch(e){} }
+
+  ws = new WebSocket(url);
+
+  ws.onopen = () => {
+    // OBS sends Hello first; we wait for it
+    setStatus('handshake…', '');
+  };
+
+  ws.onmessage = async (evt) => {
+    let msg;
+    try { msg = JSON.parse(evt.data); } catch(e) { return; }
+
+    const op = msg.op;
+
+    // Op 0: Hello
+    if (op === 0) {
+      const d = msg.d;
+      const pass = document.getElementById('obsPass').value;
+      let authStr = undefined;
+
+      if (d.authentication) {
+        if (!pass) {
+          setStatus('auth required — enter password', 'err');
+          ws.close(); return;
+        }
+        authStr = await buildAuth(pass, d.authentication.salt, d.authentication.challenge);
+      }
+
+      // Op 1: Identify
+      const identPayload = {
+        op: 1,
+        d: {
+          rpcVersion: 1,
+          eventSubscriptions: EventSub.Inputs | EventSub.InputVolumeMeters,
+        }
+      };
+      if (authStr) identPayload.d.authentication = authStr;
+      ws.send(JSON.stringify(identPayload));
+    }
+
+    // Op 2: Identified (connected!)
+    else if (op === 2) {
+      obsConnected = true;
+      setStatus('connected', 'ok');
+      document.getElementById('connBtn').textContent = 'Disconnect';
+      document.getElementById('connBtn').classList.add('active');
+      startAnimation();
+      refreshInputList();
+    }
+
+    // Op 5: Event
+    else if (op === 5) {
+      handleEvent(msg.d);
+    }
+
+    // Op 7: RequestResponse
+    else if (op === 7) {
+      const id = msg.d.requestId;
+      if (pendingReqs[id]) {
+        pendingReqs[id](msg.d);
+        delete pendingReqs[id];
+      }
+    }
+  };
+
+  ws.onclose = () => {
+    obsConnected = false;
+    if (connStatus.textContent !== 'disconnected') setStatus('disconnected', 'err');
+    document.getElementById('connBtn').textContent = 'Connect';
+    document.getElementById('connBtn').classList.remove('active');
+  };
+
+  ws.onerror = () => {
+    setStatus('connection failed', 'err');
+  };
+}
+
+function obsDisconnect() {
+  if (ws) ws.close();
+  obsConnected = false;
+  setStatus('disconnected', '');
+  document.getElementById('connBtn').textContent = 'Connect';
+  document.getElementById('connBtn').classList.remove('active');
+}
+
+function setStatus(txt, cls) {
+  connStatus.textContent = txt;
+  connStatus.className = cls || '';
+}
+
+// Send a request to OBS, returns a promise
+function obsRequest(type, data) {
+  return new Promise((resolve, reject) => {
+    if (!ws || ws.readyState !== WebSocket.OPEN) { reject('not connected'); return; }
+    const id = 'req_' + (reqId++);
+    pendingReqs[id] = resolve;
+    ws.send(JSON.stringify({ op: 6, d: { requestType: type, requestId: id, requestData: data || {} } }));
+    setTimeout(() => { if (pendingReqs[id]) { delete pendingReqs[id]; reject('timeout'); } }, 5000);
+  });
+}
+
+// Handle incoming events
+function handleEvent(d) {
+  if (d.eventType === 'InputVolumeMeters') {
+    const targetName = document.getElementById('inputSelect').value;
+    if (!targetName) return;
+
+    const entry = (d.eventData.inputs || []).find(i => i.inputName === targetName);
+    if (!entry) return;
+
+    // inputLevelsMul: array of channels, each [magnitude, peak, inputPeak]
+    const levels = entry.inputLevelsMul || [];
+    const L = levels[0] ? levels[0][0] : 0;  // magnitude of ch0
+    const R = levels[1] ? levels[1][0] : 0;  // magnitude of ch1
+    lastVolumeData = { L, R };
+  }
+}
+
+// Fetch all audio inputs from OBS and populate the select
+async function refreshInputList() {
+  if (!obsConnected) return;
+  try {
+    const resp = await obsRequest('GetInputList');
+    const inputs = resp.responseData?.inputs || [];
+    // Filter to audio kinds
+    const audioKinds = ['wasapi_input_capture','wasapi_output_capture','coreaudio_input_capture','coreaudio_output_capture','alsa_input_capture','pulse_input_capture','pulse_output_capture','sck_audio_capture','jack_output_capture'];
+    const audioInputs = inputs.filter(i => audioKinds.some(k => i.inputKind && i.inputKind.includes('capture') || i.inputKind && i.inputKind.includes('audio')));
+    // If filter too strict, show all
+    const list = audioInputs.length > 0 ? audioInputs : inputs;
+
+    const sel = document.getElementById('inputSelect');
+    const prev = sel.value;
+    sel.innerHTML = '<option value="">— pick an audio input —</option>';
+    list.forEach(inp => {
+      const opt = document.createElement('option');
+      opt.value = inp.inputName;
+      opt.textContent = inp.inputName;
+      sel.appendChild(opt);
+    });
+    if (prev) sel.value = prev;
+    currentInputName = sel.value;
+  } catch(e) {
+    console.warn('GetInputList failed:', e);
+  }
+}
+
+document.getElementById('refreshInputs').addEventListener('click', refreshInputList);
+document.getElementById('inputSelect').addEventListener('change', e => {
+  currentInputName = e.target.value;
+  document.getElementById('lv-input').textContent = currentInputName || '—';
+});
+
+// ── Animation loop ──
+function startAnimation() {
+  if (isAnimating) return;
+  isAnimating = true;
+  animLoop();
+}
+
+function stopAnimation() {
+  isAnimating = false;
+  if (raf) cancelAnimationFrame(raf);
+  smoothVol=smoothOpen=prevRaw=0;
+  rockPos=rockVel=topRockPos=topRockVel=topLiftPos=topLiftVel=liftPos=liftVel=0;
+  headBob.setAttribute('transform',''); jawHalf.setAttribute('transform','');
+  topHalf.setAttribute('transform',''); teethGrp.setAttribute('transform','');
+  teethGrp.style.display='none';
+  volBar.style.width='0%';
+}
+
+function animLoop() {
+  if (!isAnimating) return;
+  raf = requestAnimationFrame(animLoop);
+
+  const sens    = gv('sens');
+  const gainM   = gv('gainMult');
+  const volAtk  = gv('volAtk'),  volRel  = gv('volRel');
+  const openAtk = gv('openAtk'), openRel = gv('openRel');
+  const openPx=gv('openPx'), openThresh=gv('openThresh');
+  const jawKickScale=gv('jawKickScale'), jawKickRand=gv('jawKickRand'), jawKickMax=gv('jawKickMax');
+  const jawSpring=gv('jawSpring'), jawDamp=gv('jawDamp'), jawBounce=gv('jawBounce'), jawMax=gv('jawMax'), jawDirChance=gv('jawDirChance');
+  const deltaTrig=gv('deltaTrig');
+  const topKickScale=gv('topKickScale'), topKickRand=gv('topKickRand'), topKickMax=gv('topKickMax');
+  const topSpring=gv('topSpring'), topDamp=gv('topDamp'), topBounce=gv('topBounce'), topMax=gv('topMax');
+  const topLiftScale=gv('topLiftScale'), topLiftMax=gv('topLiftMax'), topLiftSpring=gv('topLiftSpring'), topLiftDamp=gv('topLiftDamp'), topLiftCeil=gv('topLiftCeil');
+  const bobScale=gv('bobScale'), bobMax=gv('bobMax'), bobSpring=gv('bobSpring'), bobDamp=gv('bobDamp'), bobBounce=gv('bobBounce'), bobUpLim=gv('bobUpLim'), bobDownLim=gv('bobDownLim');
+  const eyeRangeX=gv('eyeRangeX'), eyeRangeY=gv('eyeRangeY'), eyeExtraX=gv('eyeExtraX'), eyeExtraY=gv('eyeExtraY');
+  const eyeLerp=gv('eyeLerp'), eyeMaxX=gv('eyeMaxX'), eyeMaxY=gv('eyeMaxY');
+  const eyeTimerMin=gv('eyeTimerMin'), eyeTimerRange=gv('eyeTimerRange'), eyeLoudThresh=gv('eyeLoudThresh');
+  const blinkEnable=document.getElementById('blinkEnable').checked;
+  const blinkMin=gv('blinkMin'), blinkRange=gv('blinkRange'), blinkDur=gv('blinkDur'), blinkVary=gv('blinkVary');
+
+  // ── Derive rawVol from OBS volume data ──
+  const chanMode = document.getElementById('chanSelect').value;
+  let mulVal;
+  if (chanMode === 'peak')      mulVal = Math.max(lastVolumeData.L, lastVolumeData.R);
+  else if (chanMode === '0')    mulVal = lastVolumeData.L;
+  else                          mulVal = lastVolumeData.R;
+
+  // OBS gives linear multiplier 0–1; apply sensitivity + gain
+  const rawVol = Math.min(mulVal * sens * gainM, 1.0);
+
+  smoothVol  = rawVol > smoothVol  ? smoothVol*(1-volAtk)+rawVol*volAtk   : smoothVol*volRel+rawVol*(1-volRel);
+  smoothOpen = rawVol > smoothOpen ? smoothOpen*(1-openAtk)+rawVol*openAtk : smoothOpen*openRel+rawVol*(1-openRel);
+  const delta = rawVol - prevRaw; prevRaw = rawVol;
+
+  // Transient kicks
+  if (delta > deltaTrig) {
+    if (Math.random() > jawDirChance) nextRockDir *= -1;
+    rockVel += (Math.min(delta*jawKickScale,jawKickMax)+Math.random()*jawKickRand)*nextRockDir;
+    liftVel -= Math.min(delta*bobScale,bobMax);
+    nextTopRockDir *= -1;
+    topRockVel += (Math.min(delta*topKickScale,topKickMax)+Math.random()*topKickRand)*nextTopRockDir;
+    topLiftVel -= Math.min(delta*topLiftScale,topLiftMax);
+  }
+
+  // Jaw spring
+  rockVel+=-rockPos*jawSpring; rockVel*=jawDamp; rockPos+=rockVel;
+  if(rockPos> jawMax){rockPos= jawMax;rockVel*=-jawBounce;}
+  if(rockPos<-jawMax){rockPos=-jawMax;rockVel*=-jawBounce;}
+
+  // Top rock spring
+  topRockVel+=-topRockPos*topSpring; topRockVel*=topDamp; topRockPos+=topRockVel;
+  if(topRockPos> topMax){topRockPos= topMax;topRockVel*=-topBounce;}
+  if(topRockPos<-topMax){topRockPos=-topMax;topRockVel*=-topBounce;}
+
+  // Top lift spring
+  topLiftVel+=-topLiftPos*topLiftSpring; topLiftVel*=topLiftDamp; topLiftPos+=topLiftVel;
+  if(topLiftPos<-topLiftCeil){topLiftPos=-topLiftCeil;topLiftVel*=-0.3;}
+  if(topLiftPos>4){topLiftPos=4;topLiftVel*=-0.3;}
+
+  // Head bob spring
+  liftVel+=-liftPos*bobSpring; liftVel*=bobDamp; liftPos+=liftVel;
+  if(liftPos<-bobUpLim){liftPos=-bobUpLim;liftVel*=-bobBounce;}
+  if(liftPos> bobDownLim){liftPos= bobDownLim;liftVel*=-bobBounce;}
+
+  // Apply transforms
+  headBob.setAttribute('transform',`translate(0,${liftPos.toFixed(2)})`);
+  jawHalf.setAttribute('transform',`rotate(${rockPos.toFixed(2)},140,170)`);
+  const openPixels = smoothOpen * -openPx;
+  const totalTopTY = topLiftPos + openPixels;
+  const tfm = `translate(0,${totalTopTY.toFixed(2)}) rotate(${topRockPos.toFixed(2)},140,170)`;
+  topHalf.setAttribute('transform', tfm);
+  teethGrp.setAttribute('transform', tfm);
+  teethGrp.style.display = smoothOpen > openThresh ? 'block' : 'none';
+
+  // Vol bar
+  const pct = Math.round(smoothVol * 100);
+  volBar.style.width = pct + '%';
+  volBar.style.background = pct > 70 ? '#e74c3c' : pct > 40 ? '#f39c12' : '#27ae60';
+
+  // Eyes
+  eyeTimer--;
+  if(eyeTimer<=0){
+    eyeTimer=eyeTimerMin+Math.random()*eyeTimerRange;
+    eyeTX=(Math.random()-0.5)*eyeRangeX; eyeTY=(Math.random()-0.5)*eyeRangeY;
+    if(smoothVol>eyeLoudThresh){ eyeTX+=(Math.random()-0.5)*eyeExtraX; eyeTY+=(Math.random()-0.5)*eyeExtraY; }
+  }
+  eyeX+=(eyeTX-eyeX)*eyeLerp; eyeY+=(eyeTY-eyeY)*eyeLerp;
+  eyeX=Math.max(-eyeMaxX,Math.min(eyeMaxX,eyeX)); eyeY=Math.max(-eyeMaxY,Math.min(eyeMaxY,eyeY));
+  lp.setAttribute('cx',104+eyeX); lp.setAttribute('cy',132+eyeY);
+  rp.setAttribute('cx',176+eyeX); rp.setAttribute('cy',132+eyeY);
+
+  // Blink
+  blinkT++;
+  if(blinkEnable&&!blinkActive&&blinkT>blinkMin+Math.random()*blinkRange){
+    blinkActive=true;
+    lb.setAttribute('y',126); lb.setAttribute('height',16);
+    rb.setAttribute('y',126); rb.setAttribute('height',16);
+    setTimeout(()=>{ lb.setAttribute('y',109); lb.setAttribute('height',8); rb.setAttribute('y',109); rb.setAttribute('height',8); blinkActive=false; blinkT=0; }, blinkDur+Math.random()*blinkVary);
+  }
+
+  // Live readouts
+  if(document.getElementById('tab-live').classList.contains('active')){
+    document.getElementById('lv-rawVol').textContent     = rawVol.toFixed(3);
+    document.getElementById('lv-smoothVol').textContent  = smoothVol.toFixed(3);
+    document.getElementById('lv-smoothOpen').textContent = smoothOpen.toFixed(3);
+    document.getElementById('lv-delta').textContent      = delta.toFixed(3);
+    document.getElementById('lv-rockPos').textContent    = rockPos.toFixed(2);
+    document.getElementById('lv-rockVel').textContent    = rockVel.toFixed(2);
+    document.getElementById('lv-topRockPos').textContent = topRockPos.toFixed(2);
+    document.getElementById('lv-topRockVel').textContent = topRockVel.toFixed(2);
+    document.getElementById('lv-topLiftPos').textContent = topLiftPos.toFixed(2);
+    document.getElementById('lv-topDir').textContent     = nextTopRockDir > 0 ? '+1' : '-1';
+    document.getElementById('lv-liftPos').textContent    = liftPos.toFixed(2);
+    document.getElementById('lv-liftVel').textContent    = liftVel.toFixed(2);
+    document.getElementById('lv-eyeX').textContent       = eyeX.toFixed(2);
+    document.getElementById('lv-eyeY').textContent       = eyeY.toFixed(2);
+    document.getElementById('lv-eyeTimer').textContent   = Math.round(eyeTimer);
+    document.getElementById('lv-blink').textContent      = blinkActive ? 'ON' : 'OFF';
+    document.getElementById('lv-wsState').textContent    = ws ? ['CONNECTING','OPEN','CLOSING','CLOSED'][ws.readyState] : 'CLOSED';
+    document.getElementById('lv-input').textContent      = currentInputName || '—';
+    document.getElementById('lv-mulL').textContent       = lastVolumeData.L.toFixed(3);
+    document.getElementById('lv-mulR').textContent       = lastVolumeData.R.toFixed(3);
+  }
+}
+
+// ── Button events ──
+document.getElementById('connBtn').addEventListener('click', () => {
+  if (obsConnected) { obsDisconnect(); stopAnimation(); }
+  else obsConnect();
+});
+
+document.getElementById('togglePanel').addEventListener('click', () => {
+  document.getElementById('panel').classList.toggle('hidden');
+});
+
+// Start the animation loop idle so eyes blink even before connecting
+startAnimation();
+</script>
+</body>
+</html>
