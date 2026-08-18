@@ -1,0 +1,1165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Ripple Drop — Twitch Chat Auditory Game</title>
+
+<script src="https://unpkg.com/tmi.js@1.8.5/dist/tmi.min.js"></script>
+
+<style>
+:root{
+    --cyan:#00ffff;
+    --panel-bg:rgba(10,16,24,0.72);
+    --panel-border:rgba(0,255,255,0.25);
+    --text:#e8f6f8;
+    --text-dim:#8fa3ab;
+    --mono:"Consolas","SFMono-Regular","Roboto Mono",monospace;
+    --sans:"Segoe UI",system-ui,Arial,sans-serif;
+}
+
+html,body{
+    margin:0;
+    overflow:hidden;
+    background:#000;
+    font-family:var(--sans);
+    height:100%;
+    width:100%;
+}
+
+body.bg-transparent{ background:transparent; }
+body.bg-black{ background:#000; }
+
+canvas{ display:block; }
+
+#c{ position:relative; z-index:2; }
+
+/* ---------- xylophone widget (pure CSS 3D, no WebGL) ---------- */
+.xylo-widget{
+    position:absolute;
+    left:50%;
+    bottom:150px;
+    transform:translateX(-50%);
+    width:640px;
+    height:170px;
+    z-index:1;
+    pointer-events:none;
+    opacity:0;
+    transition:opacity .35s ease;
+}
+.xylo-widget.active{ opacity:1; }
+
+.xylo-scene{
+    width:100%;
+    height:100%;
+    perspective:800px;
+}
+
+.xylo-plane{
+    position:relative;
+    width:100%;
+    height:100%;
+    transform-style:preserve-3d;
+    transform:rotateX(52deg);
+    transform-origin:50% 100%;
+}
+
+.xylo-plank{
+    position:absolute;
+    bottom:6px;
+    transform-style:preserve-3d;
+    transform:translateX(-50%) translateZ(0);
+    transition:transform .16s cubic-bezier(.34,1.6,.5,1), filter .25s ease;
+    filter:brightness(1);
+}
+
+.xylo-plank .plank-face{
+    width:100%;
+    height:100%;
+    border-radius:6px;
+    background:linear-gradient(180deg, var(--c1), var(--c2));
+    box-shadow:0 0 14px var(--glow), inset 0 2px 4px rgba(255,255,255,0.35);
+}
+
+.xylo-plank.hit{ transform:translateX(-50%) translateZ(-16px) scaleY(0.9); filter:brightness(1.7); }
+.xylo-plank.hit.resolving{ transform:translateX(-50%) translateZ(-26px) scaleY(0.82); filter:brightness(2.2); }
+
+@media (max-width:720px){
+    .xylo-widget{ width:92vw; height:140px; bottom:130px; }
+}
+
+.panel{
+    background:var(--panel-bg);
+    border:1px solid var(--panel-border);
+    border-radius:10px;
+    backdrop-filter:blur(6px);
+    box-shadow:0 0 24px rgba(0,255,255,0.06), inset 0 0 0 1px rgba(255,255,255,0.02);
+    color:var(--text);
+}
+
+.panel-title{
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:1.5px;
+    text-transform:uppercase;
+    color:var(--cyan);
+    padding:10px 12px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    user-select:none;
+}
+
+#hud{
+    position:absolute;
+    left:14px;
+    top:14px;
+    z-index:20;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    max-width:230px;
+}
+
+#toggleUI{
+    align-self:flex-start;
+    width:34px;
+    height:34px;
+    border-radius:8px;
+    border:1px solid var(--panel-border);
+    background:var(--panel-bg);
+    color:var(--cyan);
+    font-size:16px;
+    cursor:pointer;
+}
+#toggleUI:hover{ background:rgba(0,255,255,0.1); }
+
+#panels{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    transition:opacity .2s ease, transform .2s ease;
+}
+#panels.hidden{
+    opacity:0;
+    pointer-events:none;
+    transform:translateX(-8px);
+}
+
+.panel-body{
+    padding:0 12px 12px 12px;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    font-size:12px;
+}
+
+.panel-body label{
+    display:flex;
+    flex-direction:column;
+    gap:3px;
+    color:var(--text-dim);
+    font-size:11px;
+}
+
+.panel-body input[type="text"],
+.panel-body input[type="number"],
+.panel-body select{
+    background:rgba(255,255,255,0.05);
+    border:1px solid rgba(255,255,255,0.12);
+    border-radius:5px;
+    color:var(--text);
+    padding:5px 7px;
+    font-family:var(--mono);
+    font-size:12px;
+}
+.panel-body input[type="range"]{ accent-color:var(--cyan); width:100%; }
+.panel-body input[type="color"]{
+    width:36px; height:24px; border:none; background:none; padding:0; cursor:pointer;
+}
+
+.row{ display:flex; align-items:center; gap:8px; }
+
+.checkbox-row{
+    display:flex; align-items:center; gap:6px;
+    color:var(--text-dim); font-size:11px;
+}
+.checkbox-row input{ accent-color:var(--cyan); }
+
+button{
+    font-family:var(--sans);
+    font-size:12px;
+    background:rgba(0,255,255,0.1);
+    border:1px solid var(--panel-border);
+    color:var(--cyan);
+    border-radius:6px;
+    padding:7px 10px;
+    cursor:pointer;
+    transition:background .15s ease;
+}
+button:hover{ background:rgba(0,255,255,0.2); }
+button.ghost{
+    background:transparent;
+    color:var(--text-dim);
+    border-color:rgba(255,255,255,0.15);
+}
+button.ghost:hover{ color:var(--text); background:rgba(255,255,255,0.06); }
+
+.status-row{
+    display:flex; align-items:center; gap:7px;
+    font-family:var(--mono); font-size:11px; color:var(--text-dim);
+    padding:0 12px 8px 12px;
+}
+.dot{ width:8px; height:8px; border-radius:50%; background:#666; box-shadow:0 0 6px #666; }
+.dot.offline{ background:#666; box-shadow:0 0 6px #666; }
+.dot.connecting{ background:#ffd34d; box-shadow:0 0 8px #ffd34d; }
+.dot.online{ background:#7dff7d; box-shadow:0 0 8px #7dff7d; }
+
+#settingsBody.collapsed{ display:none; }
+
+#leaderboard{
+    position:absolute;
+    right:14px;
+    top:14px;
+    z-index:20;
+    width:210px;
+    transition:opacity .2s ease, transform .2s ease;
+}
+#leaderboard.hidden{
+    opacity:0;
+    pointer-events:none;
+    transform:translateX(8px);
+}
+
+#lbList{
+    list-style:none;
+    margin:0;
+    padding:0 10px 10px 10px;
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+    max-height:320px;
+    overflow-y:auto;
+}
+#lbList li{
+    display:grid;
+    grid-template-columns:26px 1fr auto;
+    align-items:center;
+    gap:6px;
+    font-size:12px;
+    padding:4px 6px;
+    border-radius:5px;
+    background:rgba(255,255,255,0.03);
+}
+#lbList li .rank{ font-family:var(--mono); color:var(--text-dim); text-align:center; }
+#lbList li .lb-name{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+#lbList li .lb-score{ font-family:var(--mono); color:var(--cyan); font-weight:bold; }
+#lbList li.empty{
+    color:var(--text-dim); font-style:italic; justify-content:center; display:flex; background:none;
+}
+
+#counter{
+    position:absolute;
+    left:14px;
+    bottom:14px;
+    z-index:20;
+    font-family:var(--mono);
+    font-size:12px;
+    color:var(--text-dim);
+    background:var(--panel-bg);
+    border:1px solid var(--panel-border);
+    border-radius:8px;
+    padding:6px 10px;
+    transition:opacity .2s ease;
+}
+#counter.hidden{ opacity:0; pointer-events:none; }
+
+::-webkit-scrollbar{ width:6px; }
+::-webkit-scrollbar-thumb{ background:rgba(0,255,255,0.25); border-radius:3px; }
+</style>
+</head>
+
+<body class="bg-black">
+
+<div id="hud">
+    <button id="toggleUI" title="Hide/show UI (H)">☰</button>
+
+    <div id="panels">
+
+        <div class="panel" id="connectPanel">
+            <div class="panel-title">Connection</div>
+            <div class="status-row">
+                <span id="statusDot" class="dot offline"></span>
+                <span id="statusText">Offline</span>
+            </div>
+            <div class="panel-body">
+                <label>Channel
+                    <input id="channel" type="text" placeholder="twitch channel name">
+                </label>
+                <div class="row">
+                    <button id="connect" style="flex:1">Connect</button>
+                </div>
+                <button id="testDrop" class="ghost">Test drop (Space)</button>
+            </div>
+        </div>
+
+        <div class="panel" id="settingsPanel">
+            <div class="panel-title" id="settingsToggle" style="cursor:pointer">
+                <span>Settings</span><span id="settingsCaret">▾</span>
+            </div>
+            <div class="panel-body" id="settingsBody">
+
+                <label>Trigger
+                    <select id="triggerMode">
+                        <option value="all">Every chat message</option>
+                        <option value="command">Only on command</option>
+                    </select>
+                </label>
+
+                <label id="commandLabel" style="display:none">Command
+                    <input id="commandText" type="text" value="!drop">
+                </label>
+
+                <label>Cooldown per user (seconds)
+                    <input id="cooldown" type="number" min="0" step="1" value="3">
+                </label>
+
+                <label>Max drops on screen
+                    <input id="maxDrops" type="number" min="1" step="1" value="40">
+                </label>
+
+                <label>Gravity: <span id="gravityVal">0.28</span>
+                    <input id="gravity" type="range" min="0.10" max="0.60" step="0.01" value="0.28">
+                </label>
+
+                <label>Target size: <span id="targetVal">55</span>
+                    <input id="targetRadius" type="range" min="30" max="100" step="1" value="55">
+                </label>
+
+                <label>Drop size: <span id="dropVal">16</span>
+                    <input id="dropSize" type="range" min="8" max="30" step="1" value="16">
+                </label>
+
+                <div class="checkbox-row">
+                    <input type="checkbox" id="soundToggle" checked>
+                    <label for="soundToggle" style="margin:0">Sound on landing</label>
+                </div>
+
+                <label>Background
+                    <div class="row">
+                        <select id="bgMode" style="flex:1">
+                            <option value="black">Black</option>
+                            <option value="transparent">Transparent (OBS)</option>
+                            <option value="custom">Custom</option>
+                        </select>
+                        <input type="color" id="bgColor" value="#000000">
+                    </div>
+                </label>
+
+                <div class="checkbox-row">
+                    <input type="checkbox" id="xyloToggle">
+                    <label for="xyloToggle" style="margin:0">🎼 Xylophone mode</label>
+                </div>
+
+                <div id="xyloSubSettings" style="display:none; flex-direction:column; gap:8px;">
+                    <label>Scale
+                        <select id="xyloScale">
+                            <option value="major">Major</option>
+                            <option value="majorPentatonic">Major pentatonic</option>
+                            <option value="minorPentatonic">Minor pentatonic</option>
+                            <option value="blues">Blues</option>
+                            <option value="chromatic">Chromatic</option>
+                        </select>
+                    </label>
+                    <label>Root note
+                        <select id="xyloRoot">
+                            <option value="C">C</option>
+                            <option value="D">D</option>
+                            <option value="E">E</option>
+                            <option value="F">F</option>
+                            <option value="G">G</option>
+                            <option value="A">A</option>
+                            <option value="B">B</option>
+                        </select>
+                    </label>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<div id="leaderboard" class="panel">
+    <div class="panel-title">
+        <span>🏆 Leaderboard</span>
+        <button id="clearLB" class="ghost" style="padding:3px 7px;font-size:10px;">Reset</button>
+    </div>
+    <ol id="lbList"></ol>
+</div>
+
+<div id="counter">Drops: <span id="count">0</span></div>
+
+<canvas id="c"></canvas>
+
+<div id="xyloWidget" class="xylo-widget">
+    <div class="xylo-scene">
+        <div class="xylo-plane" id="xyloPlane"></div>
+    </div>
+</div>
+
+<script>
+
+/* ============================================================
+   CONFIG + PERSISTENCE
+   ============================================================ */
+
+const DEFAULT_CONFIG = {
+    channel:"",
+    triggerMode:"all",
+    command:"!drop",
+    cooldown:3,
+    maxDrops:40,
+    gravity:0.28,
+    targetRadius:55,
+    dropSize:16,
+    sound:true,
+    bgMode:"black",
+    bgColor:"#000000",
+    xylophone:{
+        enabled:false,
+        scale:"major",
+        root:"C"
+    }
+};
+
+function loadConfig(){
+    try{
+        const saved = JSON.parse(localStorage.getItem("splashDropSettings"));
+        return Object.assign({}, DEFAULT_CONFIG, saved || {});
+    }catch(e){
+        return Object.assign({}, DEFAULT_CONFIG);
+    }
+}
+function saveConfig(){
+    try{ localStorage.setItem("splashDropSettings", JSON.stringify(CONFIG)); }catch(e){}
+}
+
+let CONFIG = loadConfig();
+
+function loadLeaderboard(){
+    try{ return JSON.parse(localStorage.getItem("splashDropLeaderboard")) || {}; }
+    catch(e){ return {}; }
+}
+function saveLeaderboard(){
+    try{ localStorage.setItem("splashDropLeaderboard", JSON.stringify(leaderboard)); }catch(e){}
+}
+
+let leaderboard = loadLeaderboard();
+
+function escapeHtml(str){
+    const d = document.createElement("div");
+    d.textContent = str;
+    return d.innerHTML;
+}
+function lerp(a,b,t){ return a + (b-a)*t; }
+
+/* ============================================================
+   CANVAS / SCENE
+   ============================================================ */
+
+const canvas = document.getElementById("c");
+const ctx = canvas.getContext("2d");
+
+const drops = [];
+const splashes = [];
+const ripples = [];
+
+const SPLASH_ZONE = 350;
+
+let targetX = 0;
+let targetY = 0;
+
+function updateTarget(){
+    targetX = canvas.width / 2;
+    targetY = canvas.height - 160;
+}
+
+function resize(){
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    updateTarget();
+}
+window.onresize = resize;
+resize();
+
+class Drop{
+
+    constructor(name,color){
+        this.name = name;
+        this.x = Math.random() * canvas.width;
+        this.y = -40;
+        this.vy = 0;
+        this.color = color;
+        this.size = CONFIG.dropSize;
+        this.landed = false;
+    }
+
+    update(){
+        this.vy += CONFIG.gravity;
+        this.y += this.vy;
+
+        if(this.y >= targetY){
+            this.land();
+            return false;
+        }
+
+        return true;
+    }
+
+    draw(){
+        ctx.beginPath();
+        ctx.fillStyle = this.color;
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI*2);
+        ctx.fill();
+
+        ctx.fillStyle = "white";
+        ctx.font = "12px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText(this.name, this.x, this.y-22);
+    }
+
+    land(){
+        const dx = this.x - targetX;
+        const dist = Math.abs(dx);
+
+        const score = Math.max(0,
+            Math.round(100 - (dist/CONFIG.targetRadius)*100));
+
+        createSplash(this.x, targetY, this.color, score);
+        createRipple(this.x, targetY, this.color);
+        registerScore(this.name, score);
+
+        if(!CONFIG.sound) return;
+
+        if(CONFIG.xylophone.enabled){
+            const scale = xyloFullScale.length ? xyloFullScale : buildXyloScale();
+            const idx = getXyloZoneIndex(this.x);
+            const centerIdx = Math.floor(scale.length/2);
+            const isResolving = idx === centerIdx && dist <= CONFIG.targetRadius*0.4;
+
+            triggerPlankHit(idx, isResolving);
+
+            if(isResolving){
+                playResolvingJingle();
+            }else{
+                playXylophoneNote(xyloFreq(scale[idx]));
+            }
+        }else{
+            playLandSound(score);
+        }
+    }
+
+}
+
+/* ---------------- splash particle effect (unchanged) ---------------- */
+
+class Particle{
+
+    constructor(x,y,color,score){
+        this.x=x;
+        this.y=y;
+
+        const a=Math.random()*Math.PI*2;
+        const s=Math.random()*5+2;
+
+        this.vx=Math.cos(a)*s;
+        this.vy=Math.sin(a)*s;
+
+        this.life=50;
+        this.color=color;
+        this.score=score;
+        this.labelLife=80;
+    }
+
+    update(){
+        this.life--;
+        this.labelLife--;
+        this.x+=this.vx;
+        this.y+=this.vy;
+        this.vy+=0.08;
+    }
+
+    draw(){
+        if(this.life>0){
+            ctx.globalAlpha=this.life/50;
+            ctx.beginPath();
+            ctx.fillStyle=this.color;
+            ctx.arc(this.x,this.y,3,0,Math.PI*2);
+            ctx.fill();
+            ctx.globalAlpha=1;
+        }
+
+        if(this.labelLife>0){
+            ctx.fillStyle="white";
+            ctx.font="bold 16px Arial";
+            ctx.textAlign="center";
+            ctx.fillText("+"+this.score, this.x, this.y-18);
+        }
+    }
+
+}
+
+function createSplash(x,y,color,score){
+    for(let i=0;i<26;i++){
+        splashes.push(new Particle(x,y,color,score));
+    }
+}
+
+/* ---------------- floor ripple effect (new) ---------------- */
+
+class Ripple{
+
+    constructor(x,y,color,delay){
+        this.x=x;
+        this.y=y;
+        this.color=color||"#00e5ff";
+        this.delay=delay||0;
+        this.age=0;
+        this.duration=42;
+    }
+
+    update(){
+        if(this.delay>0){
+            this.delay--;
+            return true;
+        }
+        this.age++;
+        return this.age<this.duration;
+    }
+
+    draw(){
+        if(this.delay>0) return;
+
+        const t = this.age/this.duration;
+        const radius = 6 + t*72;
+        const alpha = (1-t)*0.75;
+
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.strokeStyle = this.color;
+        ctx.lineWidth = Math.max(1, 3*(1-t)+0.5);
+        ctx.beginPath();
+        // slightly squashed ellipse gives the ring a "lying on the floor" feel
+        ctx.ellipse(this.x, this.y, radius, radius*0.34, 0, 0, Math.PI*2);
+        ctx.stroke();
+        ctx.restore();
+    }
+
+}
+
+function createRipple(x,y,color){
+    ripples.push(new Ripple(x,y,color,0));
+    ripples.push(new Ripple(x,y,color,6));
+}
+
+/* ---------------- render loop ---------------- */
+
+function loop(){
+
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    const g=ctx.createLinearGradient(0,canvas.height-SPLASH_ZONE,0,canvas.height);
+    g.addColorStop(0,"rgba(0,180,255,0.02)");
+    g.addColorStop(1,"rgba(0,180,255,0.12)");
+
+    ctx.fillStyle=g;
+    ctx.fillRect(0,canvas.height-SPLASH_ZONE,canvas.width,SPLASH_ZONE);
+
+    // aim target — always visible, in both normal and xylophone modes
+    ctx.beginPath();
+    ctx.strokeStyle="#00ffff";
+    ctx.lineWidth=3;
+    ctx.arc(targetX,targetY,CONFIG.targetRadius,0,Math.PI*2);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(targetX,targetY,6,0,Math.PI*2);
+    ctx.fillStyle="#00ffff";
+    ctx.fill();
+
+    for(let i=drops.length-1;i>=0;i--){
+        if(!drops[i].update()){
+            drops.splice(i,1);
+            continue;
+        }
+        drops[i].draw();
+    }
+
+    for(let i=ripples.length-1;i>=0;i--){
+        if(!ripples[i].update()){
+            ripples.splice(i,1);
+            continue;
+        }
+        ripples[i].draw();
+    }
+
+    for(let i=splashes.length-1;i>=0;i--){
+        splashes[i].update();
+        splashes[i].draw();
+        if(splashes[i].life<=0 && splashes[i].labelLife<=0){
+            splashes.splice(i,1);
+        }
+    }
+
+    requestAnimationFrame(loop);
+}
+loop();
+
+/* ============================================================
+   DROPS / LEADERBOARD / SOUND
+   ============================================================ */
+
+function randomColor(){
+    const colors=["#ff5757","#5cd6ff","#ffd34d","#7dff7d","#ff66ff","#ffffff"];
+    return colors[Math.floor(Math.random()*colors.length)];
+}
+
+function addDrop(name){
+    if(drops.length >= CONFIG.maxDrops) return;
+    drops.push(new Drop(name, randomColor()));
+    const countEl = document.getElementById("count");
+    countEl.textContent = Number(countEl.textContent) + 1;
+}
+
+function registerScore(name, score){
+    const key = name || "anonymous";
+    if(!leaderboard[key]){
+        leaderboard[key] = { best:0, drops:0 };
+    }
+    leaderboard[key].drops += 1;
+    if(score > leaderboard[key].best){
+        leaderboard[key].best = score;
+    }
+    saveLeaderboard();
+    renderLeaderboard();
+}
+
+function renderLeaderboard(){
+    const entries = Object.entries(leaderboard)
+        .sort((a,b)=>b[1].best-a[1].best)
+        .slice(0,10);
+
+    const list = document.getElementById("lbList");
+    const medals = ["🥇","🥈","🥉"];
+
+    if(entries.length===0){
+        list.innerHTML = '<li class="empty">No drops yet</li>';
+        return;
+    }
+
+    list.innerHTML = entries.map(([name,data],i)=>{
+        const rank = medals[i] || (i+1)+".";
+        return "<li><span class=\"rank\">"+rank+"</span><span class=\"lb-name\">"+escapeHtml(name)+"</span><span class=\"lb-score\">"+data.best+"</span></li>";
+    }).join("");
+}
+renderLeaderboard();
+
+document.getElementById("clearLB").onclick = function(){
+    if(confirm("Reset the leaderboard? This can't be undone.")){
+        leaderboard = {};
+        saveLeaderboard();
+        renderLeaderboard();
+    }
+};
+
+/* ---- simple landing chime, pitched by score ---- */
+let audioCtx = null;
+function playLandSound(score){
+    try{
+        if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = "sine";
+        const freq = 220 + (score/100)*440;
+        osc.frequency.value = freq;
+        gain.gain.value = 0.08;
+        osc.connect(gain).connect(audioCtx.destination);
+        osc.start();
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime+0.35);
+        osc.stop(audioCtx.currentTime+0.35);
+    }catch(e){}
+}
+
+/* ============================================================
+   XYLOPHONE MODE (pure CSS 3D — no WebGL, so it always renders
+   reliably, including inside OBS Browser Sources where hardware
+   acceleration / WebGL is often unavailable)
+   ------------------------------------------------------------
+   Planks are arranged low->high pitch outward from the edges,
+   peaking at the CENTER plank, which carries the resolving high
+   octave of the chosen scale — the same spot the aim target sits
+   on. Landing dead-center plays a short ascending jingle through
+   the scale instead of a single note. The aim target ring stays
+   on screen in both modes; the plank row sits beneath it.
+   ============================================================ */
+
+const XYLO_ROOT_FREQS = { C:261.63, D:293.66, E:329.63, F:349.23, G:392.00, A:440.00, B:493.88 };
+
+const XYLO_SCALES = {
+    major:           [0,2,4,5,7,9,11,12],
+    majorPentatonic: [0,2,4,7,9,12],
+    minorPentatonic: [0,3,5,7,10,12],
+    blues:           [0,3,5,6,7,10,12],
+    chromatic:       [0,1,2,3,4,5,6,7,8,9,10,11,12]
+};
+
+let xyloFullScale = [];
+let xyloPlankEls = [];
+
+/* ---- scale + frequency math ---- */
+
+function buildXyloScale(){
+    const base = XYLO_SCALES[CONFIG.xylophone.scale] || XYLO_SCALES.major;
+    // Ascend edge->center, then mirror back down: low, ..., HIGH (resolving), ..., low
+    xyloFullScale = base.concat(base.slice(0,-1).reverse());
+    return xyloFullScale;
+}
+
+function xyloFreq(semitoneOffset){
+    const rootFreq = XYLO_ROOT_FREQS[CONFIG.xylophone.root] || XYLO_ROOT_FREQS.C;
+    return rootFreq * Math.pow(2, semitoneOffset/12);
+}
+
+function getXyloZoneIndex(x){
+    const scale = xyloFullScale.length ? xyloFullScale : buildXyloScale();
+    const total = scale.length;
+    const el = document.getElementById("xyloWidget");
+    const widgetWidth = (el && el.clientWidth) ? el.clientWidth : 640;
+    const left = targetX - widgetWidth/2;
+    const zoneWidth = widgetWidth/total;
+    let idx = Math.floor((x-left)/zoneWidth);
+    return Math.max(0, Math.min(total-1, idx));
+}
+
+/* ---- audio: bar-percussion-ish timbre (fundamental + inharmonic overtones) ---- */
+
+function playXylophoneNote(freq){
+    try{
+        if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+        const t0 = audioCtx.currentTime;
+        const partials = [[1,0.55],[3.0,0.20],[6.3,0.07]];
+        partials.forEach(([mult,amp])=>{
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = "sine";
+            osc.frequency.value = freq*mult;
+            gain.gain.value = amp*0.5;
+            osc.connect(gain).connect(audioCtx.destination);
+            osc.start(t0);
+            gain.gain.exponentialRampToValueAtTime(0.0001, t0+0.5);
+            osc.stop(t0+0.5);
+        });
+    }catch(e){}
+}
+
+function playResolvingJingle(){
+    const base = XYLO_SCALES[CONFIG.xylophone.scale] || XYLO_SCALES.major;
+    base.forEach((semi,i)=>{
+        setTimeout(()=>playXylophoneNote(xyloFreq(semi)), i*90);
+    });
+}
+
+/* ---- CSS-3D plank row ---- */
+
+function loadPlankModel(index, total, semitoneOffset){
+    /* ============================================================
+       PLACEHOLDER — this div + gradient stands in for a real 3D
+       plank model. To swap in an actual model per bar, replace the
+       returned element with e.g. a <model-viewer> web component
+       pointed at a .glb file, sized/positioned the same way this
+       placeholder is in buildXyloDOM() below:
+
+         const viewer = document.createElement('model-viewer');
+         viewer.src = 'models/xylo_bar.glb';
+         viewer.style.width = width + "px";
+         viewer.style.height = length + "px";
+         return viewer; // used in place of the `plank` div here
+       ============================================================ */
+    const t = semitoneOffset/12;
+    const length = Math.round(lerp(150, 70, t)); // lower notes -> longer bars
+    const width = 26;
+    const hue1 = lerp(190,270,t);
+    const hue2 = hue1+22;
+
+    const plank = document.createElement("div");
+    plank.className = "xylo-plank";
+    plank.style.width = width+"px";
+    plank.style.height = length+"px";
+    plank.style.setProperty("--c1", "hsl("+hue1+",70%,62%)");
+    plank.style.setProperty("--c2", "hsl("+hue2+",70%,42%)");
+    plank.style.setProperty("--glow", "hsla("+hue1+",90%,60%,0.55)");
+
+    const face = document.createElement("div");
+    face.className = "plank-face";
+    plank.appendChild(face);
+
+    return plank;
+}
+
+function buildXyloDOM(){
+    const plane = document.getElementById("xyloPlane");
+    if(!plane) return;
+
+    plane.innerHTML = "";
+    xyloPlankEls = [];
+
+    const scale = buildXyloScale();
+    const total = scale.length;
+
+    scale.forEach((semi,i)=>{
+        const plank = loadPlankModel(i, total, semi);
+        const leftPct = ((i+0.5)/total)*100;
+        plank.style.left = leftPct+"%";
+        plane.appendChild(plank);
+        xyloPlankEls.push(plank);
+    });
+}
+
+function triggerPlankHit(index, isResolving){
+    const el = xyloPlankEls[index];
+    if(!el) return;
+
+    el.classList.remove("hit","resolving");
+    void el.offsetWidth; // restart the CSS transition
+    el.classList.add("hit");
+    if(isResolving) el.classList.add("resolving");
+
+    clearTimeout(el._hitTimeout);
+    el._hitTimeout = setTimeout(()=>{
+        el.classList.remove("hit","resolving");
+    }, 220);
+}
+
+/* ============================================================
+   TWITCH CHAT CONNECTION
+   ============================================================ */
+
+let client = null;
+const lastDropTime = new Map();
+
+function setStatus(state, text){
+    const dot = document.getElementById("statusDot");
+    dot.className = "dot " + state;
+    document.getElementById("statusText").textContent = text;
+}
+
+function shouldTrigger(username, message){
+    if(CONFIG.triggerMode === "command"){
+        const cmd = (CONFIG.command||"").trim().toLowerCase();
+        if(!cmd || !message.trim().toLowerCase().startsWith(cmd)) return false;
+    }
+
+    const now = Date.now();
+    const last = lastDropTime.get(username) || 0;
+    if(now - last < CONFIG.cooldown*1000) return false;
+
+    if(drops.length >= CONFIG.maxDrops) return false;
+
+    lastDropTime.set(username, now);
+    return true;
+}
+
+document.getElementById("connect").onclick = function(){
+
+    if(client){
+        client.disconnect();
+        client = null;
+        setStatus("offline","Offline");
+        this.textContent = "Connect";
+        return;
+    }
+
+    const channel = document.getElementById("channel").value.trim();
+    if(!channel){
+        alert("Enter a channel name first.");
+        return;
+    }
+
+    CONFIG.channel = channel;
+    saveConfig();
+
+    // unlock audio on user gesture
+    try{ if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){}
+
+    setStatus("connecting","Connecting…");
+
+    client = new tmi.Client({
+        connection:{ reconnect:true, secure:true },
+        channels:[channel]
+    });
+
+    client.connect().catch(()=>{
+        setStatus("offline","Connection failed");
+        client = null;
+    });
+
+    client.on("connected", ()=>{
+        setStatus("online","Connected — "+channel);
+        document.getElementById("connect").textContent = "Disconnect";
+    });
+
+    client.on("disconnected", ()=>{
+        setStatus("offline","Offline");
+        document.getElementById("connect").textContent = "Connect";
+    });
+
+    client.on("message", (channelName, tags, message, self)=>{
+        if(self) return;
+        const username = tags["display-name"] || tags.username || "viewer";
+        if(!shouldTrigger(username, message)) return;
+        addDrop(username);
+    });
+};
+
+document.getElementById("testDrop").onclick = function(){
+    addDrop("Test"+Math.floor(Math.random()*99));
+};
+
+window.addEventListener("keydown", e=>{
+    if(e.code === "Space" && document.activeElement.tagName !== "INPUT"){
+        e.preventDefault();
+        addDrop("Test"+Math.floor(Math.random()*99));
+    }
+    if(e.code === "KeyH" && document.activeElement.tagName !== "INPUT"){
+        toggleUI();
+    }
+});
+
+/* ============================================================
+   UI: hide/show, settings panel, live config binding
+   ============================================================ */
+
+function toggleUI(){
+    document.getElementById("panels").classList.toggle("hidden");
+    document.getElementById("leaderboard").classList.toggle("hidden");
+    document.getElementById("counter").classList.toggle("hidden");
+}
+document.getElementById("toggleUI").onclick = toggleUI;
+
+document.getElementById("settingsToggle").onclick = function(){
+    const body = document.getElementById("settingsBody");
+    const caret = document.getElementById("settingsCaret");
+    body.classList.toggle("collapsed");
+    caret.textContent = body.classList.contains("collapsed") ? "▸" : "▾";
+};
+
+function applyBackground(){
+    document.body.classList.remove("bg-black","bg-transparent");
+    document.body.style.background = "";
+    if(CONFIG.bgMode === "black"){
+        document.body.classList.add("bg-black");
+    }else if(CONFIG.bgMode === "transparent"){
+        document.body.classList.add("bg-transparent");
+    }else{
+        document.body.style.background = CONFIG.bgColor;
+    }
+}
+
+function initSettingsUI(){
+    document.getElementById("channel").value = CONFIG.channel || "";
+    document.getElementById("triggerMode").value = CONFIG.triggerMode;
+    document.getElementById("commandText").value = CONFIG.command;
+    document.getElementById("commandLabel").style.display = CONFIG.triggerMode==="command" ? "flex" : "none";
+    document.getElementById("cooldown").value = CONFIG.cooldown;
+    document.getElementById("maxDrops").value = CONFIG.maxDrops;
+    document.getElementById("gravity").value = CONFIG.gravity;
+    document.getElementById("gravityVal").textContent = CONFIG.gravity;
+    document.getElementById("targetRadius").value = CONFIG.targetRadius;
+    document.getElementById("targetVal").textContent = CONFIG.targetRadius;
+    document.getElementById("dropSize").value = CONFIG.dropSize;
+    document.getElementById("dropVal").textContent = CONFIG.dropSize;
+    document.getElementById("soundToggle").checked = CONFIG.sound;
+    document.getElementById("bgMode").value = CONFIG.bgMode;
+    document.getElementById("bgColor").value = CONFIG.bgColor;
+    applyBackground();
+
+    document.getElementById("xyloToggle").checked = CONFIG.xylophone.enabled;
+    document.getElementById("xyloScale").value = CONFIG.xylophone.scale;
+    document.getElementById("xyloRoot").value = CONFIG.xylophone.root;
+    document.getElementById("xyloSubSettings").style.display = CONFIG.xylophone.enabled ? "flex" : "none";
+    document.getElementById("xyloWidget").classList.toggle("active", CONFIG.xylophone.enabled);
+
+    buildXyloDOM();
+}
+initSettingsUI();
+
+document.getElementById("triggerMode").onchange = function(){
+    CONFIG.triggerMode = this.value;
+    document.getElementById("commandLabel").style.display = this.value==="command" ? "flex" : "none";
+    saveConfig();
+};
+document.getElementById("commandText").oninput = function(){
+    CONFIG.command = this.value;
+    saveConfig();
+};
+document.getElementById("cooldown").oninput = function(){
+    CONFIG.cooldown = Math.max(0, Number(this.value)||0);
+    saveConfig();
+};
+document.getElementById("maxDrops").oninput = function(){
+    CONFIG.maxDrops = Math.max(1, Number(this.value)||1);
+    saveConfig();
+};
+document.getElementById("gravity").oninput = function(){
+    CONFIG.gravity = Number(this.value);
+    document.getElementById("gravityVal").textContent = CONFIG.gravity.toFixed(2);
+    saveConfig();
+};
+document.getElementById("targetRadius").oninput = function(){
+    CONFIG.targetRadius = Number(this.value);
+    document.getElementById("targetVal").textContent = CONFIG.targetRadius;
+    saveConfig();
+};
+document.getElementById("dropSize").oninput = function(){
+    CONFIG.dropSize = Number(this.value);
+    document.getElementById("dropVal").textContent = CONFIG.dropSize;
+    saveConfig();
+};
+document.getElementById("soundToggle").onchange = function(){
+    CONFIG.sound = this.checked;
+    saveConfig();
+};
+document.getElementById("bgMode").onchange = function(){
+    CONFIG.bgMode = this.value;
+    applyBackground();
+    saveConfig();
+};
+document.getElementById("bgColor").oninput = function(){
+    CONFIG.bgColor = this.value;
+    if(CONFIG.bgMode === "custom") applyBackground();
+    saveConfig();
+};
+
+document.getElementById("xyloToggle").onchange = function(){
+    CONFIG.xylophone.enabled = this.checked;
+    saveConfig();
+
+    document.getElementById("xyloSubSettings").style.display = this.checked ? "flex" : "none";
+    document.getElementById("xyloWidget").classList.toggle("active", this.checked);
+
+    if(this.checked) buildXyloDOM();
+};
+document.getElementById("xyloScale").onchange = function(){
+    CONFIG.xylophone.scale = this.value;
+    saveConfig();
+    buildXyloDOM();
+};
+document.getElementById("xyloRoot").onchange = function(){
+    CONFIG.xylophone.root = this.value;
+    saveConfig();
+};
+
+</script>
+
+</body>
+</html>
