@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Ripple Drop — Twitch Chat Auditory Game</title>
+<title>Splash Drop — Twitch Chat Game</title>
 
-<script src="https://unpkg.com/tmi.js@1.8.5/dist/tmi.min.js"></script>
+<script src="https://unpkg.com/tmi.js@1.8.5/dist/tmi.min.js" onerror="window.__tmiLoadFailed=true;"></script>
 
 <style>
 :root{
@@ -37,14 +37,14 @@ canvas{ display:block; }
 .xylo-widget{
     position:absolute;
     left:50%;
-    bottom:150px;
+    bottom:clamp(90px, 16vh, 150px);
     transform:translateX(-50%);
-    width:640px;
-    height:170px;
+    width:clamp(300px, 46vw, 760px);
+    height:clamp(105px, 16vw, 190px);
     z-index:1;
     pointer-events:none;
     opacity:0;
-    transition:opacity .35s ease;
+    transition:opacity .35s ease, width .2s ease, height .2s ease;
 }
 .xylo-widget.active{ opacity:1; }
 
@@ -68,7 +68,7 @@ canvas{ display:block; }
     bottom:6px;
     transform-style:preserve-3d;
     transform:translateX(-50%) translateZ(0);
-    transition:transform .16s cubic-bezier(.34,1.6,.5,1), filter .25s ease;
+    transition:transform .16s cubic-bezier(.34,1.6,.5,1), filter .25s ease, width .2s ease, height .2s ease;
     filter:brightness(1);
 }
 
@@ -82,10 +82,6 @@ canvas{ display:block; }
 
 .xylo-plank.hit{ transform:translateX(-50%) translateZ(-16px) scaleY(0.9); filter:brightness(1.7); }
 .xylo-plank.hit.resolving{ transform:translateX(-50%) translateZ(-26px) scaleY(0.82); filter:brightness(2.2); }
-
-@media (max-width:720px){
-    .xylo-widget{ width:92vw; height:140px; bottom:130px; }
-}
 
 .panel{
     background:var(--panel-bg);
@@ -298,6 +294,7 @@ button.ghost:hover{ color:var(--text); background:rgba(255,255,255,0.06); }
                 <div class="row">
                     <button id="connect" style="flex:1">Connect</button>
                 </div>
+                <div id="connectHint" style="display:none; font-size:10px; color:#ff8080; line-height:1.4;"></div>
                 <button id="testDrop" class="ghost">Test drop (Space)</button>
             </div>
         </div>
@@ -871,7 +868,7 @@ function playResolvingJingle(){
 
 /* ---- CSS-3D plank row ---- */
 
-function loadPlankModel(index, total, semitoneOffset){
+function loadPlankModel(index, total, semitoneOffset, plankWidth, minLength, maxLength){
     /* ============================================================
        PLACEHOLDER — this div + gradient stands in for a real 3D
        plank model. To swap in an actual model per bar, replace the
@@ -886,14 +883,13 @@ function loadPlankModel(index, total, semitoneOffset){
          return viewer; // used in place of the `plank` div here
        ============================================================ */
     const t = semitoneOffset/12;
-    const length = Math.round(lerp(150, 70, t)); // lower notes -> longer bars
-    const width = 26;
+    const length = Math.round(lerp(maxLength, minLength, t)); // lower notes -> longer bars
     const hue1 = lerp(190,270,t);
     const hue2 = hue1+22;
 
     const plank = document.createElement("div");
     plank.className = "xylo-plank";
-    plank.style.width = width+"px";
+    plank.style.width = plankWidth+"px";
     plank.style.height = length+"px";
     plank.style.setProperty("--c1", "hsl("+hue1+",70%,62%)");
     plank.style.setProperty("--c2", "hsl("+hue2+",70%,42%)");
@@ -907,8 +903,9 @@ function loadPlankModel(index, total, semitoneOffset){
 }
 
 function buildXyloDOM(){
+    const widget = document.getElementById("xyloWidget");
     const plane = document.getElementById("xyloPlane");
-    if(!plane) return;
+    if(!plane || !widget) return;
 
     plane.innerHTML = "";
     xyloPlankEls = [];
@@ -916,14 +913,31 @@ function buildXyloDOM(){
     const scale = buildXyloScale();
     const total = scale.length;
 
+    // Derive plank sizing from the widget's actual on-screen size so the
+    // row always fits, however big or small the widget has been laid out.
+    const widgetWidth = widget.clientWidth || 640;
+    const widgetHeight = widget.clientHeight || 170;
+
+    const plankWidth = Math.max(8, Math.min(30, (widgetWidth/total) * 0.55));
+    const maxLength = Math.max(46, widgetHeight * 0.82);
+    const minLength = maxLength * 0.45;
+
     scale.forEach((semi,i)=>{
-        const plank = loadPlankModel(i, total, semi);
+        const plank = loadPlankModel(i, total, semi, plankWidth, minLength, maxLength);
         const leftPct = ((i+0.5)/total)*100;
         plank.style.left = leftPct+"%";
         plane.appendChild(plank);
         xyloPlankEls.push(plank);
     });
 }
+
+let xyloResizeTimer = null;
+window.addEventListener("resize", ()=>{
+    clearTimeout(xyloResizeTimer);
+    // debounced: rebuild plank sizes/positions to match the widget's new
+    // on-screen dimensions once the resize settles
+    xyloResizeTimer = setTimeout(buildXyloDOM, 120);
+});
 
 function triggerPlankHit(index, isResolving){
     const el = xyloPlankEls[index];
@@ -969,7 +983,29 @@ function shouldTrigger(username, message){
     return true;
 }
 
+function showConnectHint(msg){
+    const hint = document.getElementById("connectHint");
+    if(!msg){
+        hint.style.display = "none";
+        hint.textContent = "";
+        return;
+    }
+    hint.style.display = "block";
+    hint.textContent = msg;
+}
+
+function sanitizeChannelName(raw){
+    let name = raw.trim().toLowerCase();
+    // strip full URLs like https://www.twitch.tv/somechannel
+    name = name.replace(/^https?:\/\/(www\.)?twitch\.tv\//, "");
+    // strip a leading @ and any trailing slash/query string
+    name = name.replace(/^@/, "").split("/")[0].split("?")[0];
+    return name;
+}
+
 document.getElementById("connect").onclick = function(){
+
+    showConnectHint(null);
 
     if(client){
         client.disconnect();
@@ -979,11 +1015,18 @@ document.getElementById("connect").onclick = function(){
         return;
     }
 
-    const channel = document.getElementById("channel").value.trim();
+    if(typeof tmi === "undefined" || window.__tmiLoadFailed){
+        setStatus("offline","Offline");
+        showConnectHint("Couldn't load the Twitch chat library (tmi.js) from unpkg.com. Check your internet connection, or that unpkg.com isn't blocked on this network, then reload the page.");
+        return;
+    }
+
+    const channel = sanitizeChannelName(document.getElementById("channel").value);
     if(!channel){
         alert("Enter a channel name first.");
         return;
     }
+    document.getElementById("channel").value = channel;
 
     CONFIG.channel = channel;
     saveConfig();
@@ -993,24 +1036,34 @@ document.getElementById("connect").onclick = function(){
 
     setStatus("connecting","Connecting…");
 
-    client = new tmi.Client({
-        connection:{ reconnect:true, secure:true },
-        channels:[channel]
-    });
+    try{
+        client = new tmi.Client({
+            connection:{ reconnect:true, secure:true },
+            channels:[channel]
+        });
+    }catch(e){
+        setStatus("offline","Offline");
+        showConnectHint("Failed to create the Twitch client: "+e.message);
+        client = null;
+        return;
+    }
 
-    client.connect().catch(()=>{
+    client.connect().catch((err)=>{
         setStatus("offline","Connection failed");
+        showConnectHint("Couldn't connect to #"+channel+". Double-check the channel name is correct and try again."+(err&&err.message?(" ("+err.message+")"):""));
         client = null;
     });
 
     client.on("connected", ()=>{
+        showConnectHint(null);
         setStatus("online","Connected — "+channel);
         document.getElementById("connect").textContent = "Disconnect";
     });
 
-    client.on("disconnected", ()=>{
+    client.on("disconnected", (reason)=>{
         setStatus("offline","Offline");
         document.getElementById("connect").textContent = "Connect";
+        if(reason) showConnectHint("Disconnected: "+reason);
     });
 
     client.on("message", (channelName, tags, message, self)=>{
