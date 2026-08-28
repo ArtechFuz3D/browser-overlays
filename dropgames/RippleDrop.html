@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Splash Drop — Twitch Chat Game</title>
+<title>Ripple Drop — Musical Drop Game</title>
 
-<script src="https://unpkg.com/tmi.js@1.8.5/dist/tmi.min.js" onerror="window.__tmiLoadFailed=true;"></script>
+<script src="https://unpkg.com/tmi.js@1.8.5/dist/tmi.min.js"></script>
 
 <style>
 :root{
@@ -36,15 +36,14 @@ canvas{ display:block; }
 /* ---------- xylophone widget (pure CSS 3D, no WebGL) ---------- */
 .xylo-widget{
     position:absolute;
-    left:50%;
+    left:0;
     bottom:clamp(90px, 16vh, 150px);
-    transform:translateX(-50%);
-    width:clamp(300px, 46vw, 760px);
-    height:clamp(105px, 16vw, 190px);
+    width:100%;
+    height:clamp(90px, 16vh, 210px);
     z-index:1;
     pointer-events:none;
     opacity:0;
-    transition:opacity .35s ease, width .2s ease, height .2s ease;
+    transition:opacity .35s ease, height .2s ease;
 }
 .xylo-widget.active{ opacity:1; }
 
@@ -109,6 +108,7 @@ canvas{ display:block; }
     position:absolute;
     left:14px;
     top:14px;
+    bottom:14px;
     z-index:20;
     display:flex;
     flex-direction:column;
@@ -118,6 +118,7 @@ canvas{ display:block; }
 
 #toggleUI{
     align-self:flex-start;
+    flex:none;
     width:34px;
     height:34px;
     border-radius:8px;
@@ -133,8 +134,16 @@ canvas{ display:block; }
     display:flex;
     flex-direction:column;
     gap:10px;
+    min-height:0;
+    overflow-y:auto;
+    overflow-x:hidden;
+    padding-bottom:2px;
     transition:opacity .2s ease, transform .2s ease;
+    /* scrollable, but the scrollbar itself stays invisible */
+    scrollbar-width:none;       /* Firefox */
+    -ms-overflow-style:none;    /* old Edge / IE */
 }
+#panels::-webkit-scrollbar{ display:none; } /* Chrome / Safari / Chromium Edge */
 #panels.hidden{
     opacity:0;
     pointer-events:none;
@@ -199,6 +208,12 @@ button.ghost{
     border-color:rgba(255,255,255,0.15);
 }
 button.ghost:hover{ color:var(--text); background:rgba(255,255,255,0.06); }
+button.confirm{
+    background:rgba(255,99,71,0.22);
+    border-color:rgba(255,99,71,0.6);
+    color:#ff9d85;
+}
+button.confirm:hover{ background:rgba(255,99,71,0.32); }
 
 .status-row{
     display:flex; align-items:center; gap:7px;
@@ -211,13 +226,17 @@ button.ghost:hover{ color:var(--text); background:rgba(255,255,255,0.06); }
 .dot.online{ background:#7dff7d; box-shadow:0 0 8px #7dff7d; }
 
 #settingsBody.collapsed{ display:none; }
+#lbBody.collapsed{ display:none; }
 
 #leaderboard{
     position:absolute;
     right:14px;
     top:14px;
+    bottom:14px;
     z-index:20;
     width:210px;
+    display:flex;
+    flex-direction:column;
     transition:opacity .2s ease, transform .2s ease;
 }
 #leaderboard.hidden{
@@ -226,15 +245,58 @@ button.ghost:hover{ color:var(--text); background:rgba(255,255,255,0.06); }
     transform:translateX(8px);
 }
 
+#lbBody{
+    display:flex;
+    flex-direction:column;
+    min-height:0;
+    overflow-y:auto;
+    overflow-x:hidden;
+    /* scrollable, but the scrollbar itself stays invisible (matches #panels) */
+    scrollbar-width:none;
+    -ms-overflow-style:none;
+}
+#lbBody::-webkit-scrollbar{ display:none; }
+
+.lb-tabs{
+    display:flex;
+    gap:4px;
+    padding:0 10px 8px 10px;
+}
+.lb-tab{
+    flex:1;
+    font-family:var(--mono);
+    font-size:10px;
+    letter-spacing:.5px;
+    text-transform:uppercase;
+    background:transparent;
+    border:1px solid rgba(255,255,255,0.12);
+    color:var(--text-dim);
+    border-radius:5px;
+    padding:5px 4px;
+    cursor:pointer;
+    transition:background .15s ease, color .15s ease, border-color .15s ease;
+}
+.lb-tab:hover{ color:var(--text); }
+.lb-tab.active{
+    background:rgba(0,255,255,0.12);
+    border-color:var(--panel-border);
+    color:var(--cyan);
+}
+
+.lb-meta{
+    padding:0 10px 6px 10px;
+    font-size:10px;
+    color:var(--text-dim);
+    font-family:var(--mono);
+}
+
 #lbList{
     list-style:none;
     margin:0;
-    padding:0 10px 10px 10px;
+    padding:0 10px 6px 10px;
     display:flex;
     flex-direction:column;
     gap:4px;
-    max-height:320px;
-    overflow-y:auto;
 }
 #lbList li{
     display:grid;
@@ -246,11 +308,46 @@ button.ghost:hover{ color:var(--text); background:rgba(255,255,255,0.06); }
     border-radius:5px;
     background:rgba(255,255,255,0.03);
 }
+#lbList li.updated{
+    background:rgba(0,255,255,0.1);
+    box-shadow:inset 0 0 0 1px rgba(0,255,255,0.35);
+}
 #lbList li .rank{ font-family:var(--mono); color:var(--text-dim); text-align:center; }
 #lbList li .lb-name{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 #lbList li .lb-score{ font-family:var(--mono); color:var(--cyan); font-weight:bold; }
 #lbList li.empty{
     color:var(--text-dim); font-style:italic; justify-content:center; display:flex; background:none;
+}
+
+#wipeAllTime{
+    margin:2px 10px 10px 10px;
+    font-size:10px;
+    padding:5px 8px;
+}
+
+#leaderToast{
+    position:absolute;
+    top:14px;
+    left:50%;
+    z-index:30;
+    background:var(--panel-bg);
+    border:1px solid var(--panel-border);
+    border-radius:20px;
+    padding:8px 18px;
+    font-family:var(--mono);
+    font-size:12px;
+    color:var(--cyan);
+    white-space:nowrap;
+    backdrop-filter:blur(6px);
+    box-shadow:0 0 24px rgba(0,255,255,0.1);
+    opacity:0;
+    pointer-events:none;
+    transform:translate(-50%,-14px);
+    transition:opacity .25s ease, transform .25s ease;
+}
+#leaderToast.show{
+    opacity:1;
+    transform:translate(-50%,0);
 }
 
 #counter{
@@ -294,7 +391,6 @@ button.ghost:hover{ color:var(--text); background:rgba(255,255,255,0.06); }
                 <div class="row">
                     <button id="connect" style="flex:1">Connect</button>
                 </div>
-                <div id="connectHint" style="display:none; font-size:10px; color:#ff8080; line-height:1.4;"></div>
                 <button id="testDrop" class="ghost">Test drop (Space)</button>
             </div>
         </div>
@@ -324,8 +420,8 @@ button.ghost:hover{ color:var(--text); background:rgba(255,255,255,0.06); }
                     <input id="maxDrops" type="number" min="1" step="1" value="40">
                 </label>
 
-                <label>Gravity: <span id="gravityVal">0.28</span>
-                    <input id="gravity" type="range" min="0.10" max="0.60" step="0.01" value="0.28">
+                <label>Gravity: <span id="gravityVal">0.15</span>
+                    <input id="gravity" type="range" min="0.03" max="0.45" step="0.01" value="0.15">
                 </label>
 
                 <label>Target size: <span id="targetVal">55</span>
@@ -336,10 +432,18 @@ button.ghost:hover{ color:var(--text); background:rgba(255,255,255,0.06); }
                     <input id="dropSize" type="range" min="8" max="30" step="1" value="16">
                 </label>
 
+                <label>Lateral drift: <span id="driftVal">0.6</span>
+                    <input id="lateralDrift" type="range" min="0" max="2" step="0.1" value="0.6">
+                </label>
+
                 <div class="checkbox-row">
                     <input type="checkbox" id="soundToggle" checked>
                     <label for="soundToggle" style="margin:0">Sound on landing</label>
                 </div>
+
+                <label>Volume: <span id="volumeVal">80%</span>
+                    <input id="volume" type="range" min="0" max="1" step="0.01" value="0.8">
+                </label>
 
                 <label>Background
                     <div class="row">
@@ -351,6 +455,11 @@ button.ghost:hover{ color:var(--text); background:rgba(255,255,255,0.06); }
                         <input type="color" id="bgColor" value="#000000">
                     </div>
                 </label>
+
+                <div class="checkbox-row">
+                    <input type="checkbox" id="hideLbToggle" checked>
+                    <label for="hideLbToggle" style="margin:0">Hide leaderboard with UI (H / ☰)</label>
+                </div>
 
                 <div class="checkbox-row">
                     <input type="checkbox" id="xyloToggle">
@@ -387,12 +496,22 @@ button.ghost:hover{ color:var(--text); background:rgba(255,255,255,0.06); }
 </div>
 
 <div id="leaderboard" class="panel">
-    <div class="panel-title">
-        <span>🏆 Leaderboard</span>
-        <button id="clearLB" class="ghost" style="padding:3px 7px;font-size:10px;">Reset</button>
+    <div class="panel-title" id="lbToggle" style="cursor:pointer">
+        <span>🏆 Leaderboard <span id="lbCaret">▾</span></span>
+        <button id="clearLB" class="ghost" style="padding:3px 7px;font-size:10px;" type="button" title="Start a new session — clears session totals &amp; streaks. Click twice to confirm.">Reset</button>
     </div>
-    <ol id="lbList"></ol>
+    <div id="lbBody">
+        <div class="lb-tabs" id="lbTabs">
+            <button class="lb-tab active" data-view="session" type="button">Session</button>
+            <button class="lb-tab" data-view="alltime" type="button">All-time</button>
+        </div>
+        <div class="lb-meta" id="lbMeta"></div>
+        <ol id="lbList"></ol>
+        <button id="wipeAllTime" class="ghost" type="button" title="Permanently erase all-time best scores. Click twice to confirm.">Wipe all-time records</button>
+    </div>
 </div>
+
+<div id="leaderToast"></div>
 
 <div id="counter">Drops: <span id="count">0</span></div>
 
@@ -403,7 +522,21 @@ button.ghost:hover{ color:var(--text); background:rgba(255,255,255,0.06); }
         <div class="xylo-plane" id="xyloPlane"></div>
     </div>
 </div>
+<script type="module">
 
+import tmi from "https://esm.sh/tmi.js";
+
+const client = new tmi.Client({
+    channels: ["yourchannel"]
+});
+
+await client.connect();
+
+client.on("message", (channel, tags, message, self) => {
+    console.log(tags.username, message);
+});
+
+</script>
 <script>
 
 /* ============================================================
@@ -416,12 +549,18 @@ const DEFAULT_CONFIG = {
     command:"!drop",
     cooldown:3,
     maxDrops:40,
-    gravity:0.28,
+    gravity:0.15,
     targetRadius:55,
     dropSize:16,
+    lateralDrift:0.6,
     sound:true,
+    volume:0.8,
     bgMode:"black",
     bgColor:"#000000",
+    settingsCollapsed:false,
+    leaderboardCollapsed:false,
+    hideLeaderboardOnUIToggle:true,
+    lbView:"session",
     xylophone:{
         enabled:false,
         scale:"major",
@@ -443,15 +582,44 @@ function saveConfig(){
 
 let CONFIG = loadConfig();
 
+/* ---- leaderboard / game-state persistence ----
+   Two boards live side by side so the game always keeps moving:
+   - session: points ACCUMULATE per drop (total), so ranking changes with
+     every single throw and can never "get stuck" at a fixed high score.
+   - allTime: the best single drop ever landed, kept across sessions.
+   A session is a deliberate round (e.g. one stream) and is cleared with
+   the Reset button; all-time records persist until explicitly wiped. */
 function loadLeaderboard(){
-    try{ return JSON.parse(localStorage.getItem("splashDropLeaderboard")) || {}; }
-    catch(e){ return {}; }
+    let raw = null;
+    try{ raw = JSON.parse(localStorage.getItem("splashDropLeaderboard")); }
+    catch(e){ raw = null; }
+
+    if(raw && typeof raw === "object" && raw.session && raw.allTime){
+        return raw; // already in the current shape
+    }
+
+    // migrate the old flat { name: {best, drops} } shape (single lifetime
+    // leaderboard) into the new session + all-time structure, preserving
+    // whatever high scores already exist rather than discarding them
+    const allTime = {};
+    if(raw && typeof raw === "object"){
+        Object.entries(raw).forEach(([name,data])=>{
+            allTime[name] = { best:(data && data.best) || 0, dropsEver:(data && data.drops) || 0 };
+        });
+    }
+    return { session:{}, allTime, sessionStarted:Date.now() };
 }
 function saveLeaderboard(){
     try{ localStorage.setItem("splashDropLeaderboard", JSON.stringify(leaderboard)); }catch(e){}
 }
 
 let leaderboard = loadLeaderboard();
+
+// combo streaks are live, in-the-moment game state (not persisted) — a
+// user's consecutive good landings (score >= 50) build a multiplier that
+// resets the instant they miss, keeping every session's board dynamic
+let streaks = {};
+let lbView = CONFIG.lbView === "alltime" ? "alltime" : "session";
 
 function escapeHtml(str){
     const d = document.createElement("div");
@@ -489,6 +657,13 @@ function resize(){
 window.onresize = resize;
 resize();
 
+// Falls stay readable at any gravity setting/canvas height: vy is capped
+// instead of accelerating forever. Lateral drift is amplified way past the
+// raw slider value so drops actually zig-zag wall-to-wall like the classic
+// Twitch drop games, instead of gently wandering.
+const DROP_TERMINAL_VY = 10;
+const LATERAL_DRIFT_MULTIPLIER = 8;
+
 class Drop{
 
     constructor(name,color){
@@ -496,6 +671,10 @@ class Drop{
         this.x = Math.random() * canvas.width;
         this.y = -40;
         this.vy = 0;
+        // an immediate sideways kick scaled by the drift setting, so
+        // motion reads as diagonal from the moment the drop spawns
+        const kick = 1 + CONFIG.lateralDrift * LATERAL_DRIFT_MULTIPLIER * 0.15;
+        this.vx = (Math.random()-0.5) * 2.4 * kick;
         this.color = color;
         this.size = CONFIG.dropSize;
         this.landed = false;
@@ -503,7 +682,31 @@ class Drop{
 
     update(){
         this.vy += CONFIG.gravity;
+        if(this.vy > DROP_TERMINAL_VY) this.vy = DROP_TERMINAL_VY; // cap fall speed
         this.y += this.vy;
+
+        // lateral drift: a lightly-damped random walk that bounces off the
+        // side walls, so the drop zig-zags across the screen as it falls.
+        // CONFIG.lateralDrift scales both the gustiness and the speed cap;
+        // LATERAL_DRIFT_MULTIPLIER punches that up to the exaggerated,
+        // wall-to-wall bounce of the classic Twitch drop games. 0 still
+        // reproduces a dead-straight fall.
+        const drift = CONFIG.lateralDrift * LATERAL_DRIFT_MULTIPLIER;
+        if(drift > 0){
+            this.vx += (Math.random()-0.5) * 0.8 * drift;
+            this.vx *= 0.99; // barely any damping: momentum carries wall-to-wall
+            const maxVx = 4 * drift;
+            if(this.vx > maxVx) this.vx = maxVx;
+            if(this.vx < -maxVx) this.vx = -maxVx;
+            this.x += this.vx;
+
+            // bounce off the side walls with a touch of randomness, so it
+            // reads as a lively bounce rather than a perfect mirror
+            const margin = this.size + 4;
+            const restitution = 0.92 + Math.random()*0.16;
+            if(this.x < margin){ this.x = margin; this.vx = Math.abs(this.vx) * restitution; }
+            if(this.x > canvas.width - margin){ this.x = canvas.width - margin; this.vx = -Math.abs(this.vx) * restitution; }
+        }
 
         if(this.y >= targetY){
             this.land();
@@ -529,12 +732,13 @@ class Drop{
         const dx = this.x - targetX;
         const dist = Math.abs(dx);
 
-        const score = Math.max(0,
+        const baseScore = Math.max(0,
             Math.round(100 - (dist/CONFIG.targetRadius)*100));
 
-        createSplash(this.x, targetY, this.color, score);
+        const result = registerScore(this.name, baseScore);
+
+        createSplash(this.x, targetY, this.color, result.finalScore, result.multiplier);
         createRipple(this.x, targetY, this.color);
-        registerScore(this.name, score);
 
         if(!CONFIG.sound) return;
 
@@ -552,17 +756,17 @@ class Drop{
                 playXylophoneNote(xyloFreq(scale[idx]));
             }
         }else{
-            playLandSound(score);
+            playLandSound(baseScore);
         }
     }
 
 }
 
-/* ---------------- splash particle effect (unchanged) ---------------- */
+/* ---------------- splash particle effect ---------------- */
 
 class Particle{
 
-    constructor(x,y,color,score){
+    constructor(x,y,color,score,multiplier){
         this.x=x;
         this.y=y;
 
@@ -575,6 +779,7 @@ class Particle{
         this.life=50;
         this.color=color;
         this.score=score;
+        this.multiplier=multiplier||1;
         this.labelLife=80;
     }
 
@@ -597,18 +802,19 @@ class Particle{
         }
 
         if(this.labelLife>0){
-            ctx.fillStyle="white";
+            ctx.fillStyle = this.multiplier>1 ? "#ffd34d" : "white";
             ctx.font="bold 16px Arial";
             ctx.textAlign="center";
-            ctx.fillText("+"+this.score, this.x, this.y-18);
+            const label = this.multiplier>1 ? ("+"+this.score+" ×"+this.multiplier.toFixed(1)) : ("+"+this.score);
+            ctx.fillText(label, this.x, this.y-18);
         }
     }
 
 }
 
-function createSplash(x,y,color,score){
+function createSplash(x,y,color,score,multiplier){
     for(let i=0;i<26;i++){
-        splashes.push(new Particle(x,y,color,score));
+        splashes.push(new Particle(x,y,color,score,multiplier));
     }
 }
 
@@ -728,65 +934,225 @@ function addDrop(name){
     countEl.textContent = Number(countEl.textContent) + 1;
 }
 
-function registerScore(name, score){
+function registerScore(name, baseScore){
     const key = name || "anonymous";
-    if(!leaderboard[key]){
-        leaderboard[key] = { best:0, drops:0 };
-    }
-    leaderboard[key].drops += 1;
-    if(score > leaderboard[key].best){
-        leaderboard[key].best = score;
-    }
+
+    // combo: consecutive good landings (score >= 50) build a streak that
+    // boosts points, capped at 1.5x. A miss resets it to zero, so a hot
+    // run has to be earned — and the totals below never sit still.
+    const isHit = baseScore >= 50;
+    const streak = isHit ? (streaks[key]||0) + 1 : 0;
+    streaks[key] = streak;
+    const multiplier = 1 + Math.min(Math.max(streak-1,0),5) * 0.1;
+    const finalScore = Math.round(baseScore * multiplier);
+
+    if(!leaderboard.session[key]) leaderboard.session[key] = { total:0, best:0, drops:0 };
+    if(!leaderboard.allTime[key]) leaderboard.allTime[key] = { best:0, dropsEver:0 };
+
+    const prevLeader = getSessionLeader();
+
+    leaderboard.session[key].total += finalScore;
+    leaderboard.session[key].drops += 1;
+    if(finalScore > leaderboard.session[key].best) leaderboard.session[key].best = finalScore;
+
+    leaderboard.allTime[key].dropsEver += 1;
+    if(finalScore > leaderboard.allTime[key].best) leaderboard.allTime[key].best = finalScore;
+
     saveLeaderboard();
-    renderLeaderboard();
+    renderLeaderboard(key);
+
+    // celebrate a genuine lead change on the session board (skip the
+    // trivial case of the very first drop, where "taking the lead" just
+    // means being the only entrant)
+    const newLeader = getSessionLeader();
+    if(newLeader && newLeader !== prevLeader && Object.keys(leaderboard.session).length > 1){
+        announceNewLeader(newLeader);
+    }
+
+    return { finalScore, multiplier, streak };
 }
 
-function renderLeaderboard(){
-    const entries = Object.entries(leaderboard)
-        .sort((a,b)=>b[1].best-a[1].best)
-        .slice(0,10);
+function getSessionLeader(){
+    const entries = Object.entries(leaderboard.session);
+    if(!entries.length) return null;
+    entries.sort((a,b)=>b[1].total-a[1].total);
+    return entries[0][0];
+}
 
+let leaderToastTimer = null;
+function announceNewLeader(name){
+    const el = document.getElementById("leaderToast");
+    if(!el) return;
+    el.textContent = "🏆 " + name + " takes the lead!";
+    el.classList.add("show");
+    clearTimeout(leaderToastTimer);
+    leaderToastTimer = setTimeout(()=> el.classList.remove("show"), 2600);
+}
+
+function renderLeaderboard(justUpdatedName){
     const list = document.getElementById("lbList");
+    const meta = document.getElementById("lbMeta");
     const medals = ["🥇","🥈","🥉"];
 
+    let entries, valueOf, emptyText;
+    if(lbView === "alltime"){
+        entries = Object.entries(leaderboard.allTime).sort((a,b)=>b[1].best-a[1].best);
+        valueOf = d => d.best;
+        meta.textContent = entries.length ? "Best single drop, all-time" : "";
+        emptyText = "No records yet";
+    }else{
+        entries = Object.entries(leaderboard.session).sort((a,b)=>b[1].total-a[1].total);
+        valueOf = d => d.total;
+        meta.textContent = entries.length ? "Total points this session" : "";
+        emptyText = "No drops yet this session";
+    }
+    entries = entries.slice(0,10);
+
     if(entries.length===0){
-        list.innerHTML = '<li class="empty">No drops yet</li>';
+        list.innerHTML = '<li class="empty">'+emptyText+'</li>';
         return;
     }
 
     list.innerHTML = entries.map(([name,data],i)=>{
         const rank = medals[i] || (i+1)+".";
-        return "<li><span class=\"rank\">"+rank+"</span><span class=\"lb-name\">"+escapeHtml(name)+"</span><span class=\"lb-score\">"+data.best+"</span></li>";
+        return "<li data-name=\""+escapeHtml(name)+"\"><span class=\"rank\">"+rank+"</span><span class=\"lb-name\">"+escapeHtml(name)+"</span><span class=\"lb-score\">"+valueOf(data)+"</span></li>";
     }).join("");
+
+    if(justUpdatedName){
+        list.querySelectorAll("li").forEach(li=>{
+            if(li.dataset.name === justUpdatedName){
+                li.classList.add("updated");
+                setTimeout(()=> li.classList.remove("updated"), 900);
+            }
+        });
+    }
 }
 renderLeaderboard();
 
-document.getElementById("clearLB").onclick = function(){
-    if(confirm("Reset the leaderboard? This can't be undone.")){
-        leaderboard = {};
-        saveLeaderboard();
+document.querySelectorAll(".lb-tab").forEach(btn=>{
+    btn.onclick = function(e){
+        e.stopPropagation();
+        lbView = this.dataset.view;
+        document.querySelectorAll(".lb-tab").forEach(b=>b.classList.toggle("active", b===this));
+        CONFIG.lbView = lbView;
+        saveConfig();
         renderLeaderboard();
-    }
-};
+    };
+});
+document.querySelectorAll(".lb-tab").forEach(b=>b.classList.toggle("active", b.dataset.view===lbView));
 
-/* ---- simple landing chime, pitched by score ---- */
-let audioCtx = null;
-function playLandSound(score){
-    try{
-        if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = "sine";
-        const freq = 220 + (score/100)*440;
-        osc.frequency.value = freq;
-        gain.gain.value = 0.08;
-        osc.connect(gain).connect(audioCtx.destination);
-        osc.start();
-        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime+0.35);
-        osc.stop(audioCtx.currentTime+0.35);
-    }catch(e){}
+// Native confirm()/alert() dialogs are blocked or unreliable in OBS
+// Browser Source (this widget's primary home), which is why Reset used
+// to silently do nothing there. These buttons arm on the first click and
+// only act once confirmed on a second click within a few seconds — no
+// native dialog required, so it works the same in a normal browser tab
+// or as an OBS overlay.
+function armConfirmButton(btn, onConfirm){
+    const defaultLabel = btn.textContent;
+    let armed = false;
+    let timer = null;
+    btn.addEventListener("click", function(e){
+        e.stopPropagation();
+        if(!armed){
+            armed = true;
+            btn.textContent = "Sure?";
+            btn.classList.add("confirm");
+            clearTimeout(timer);
+            timer = setTimeout(()=>{
+                armed = false;
+                btn.textContent = defaultLabel;
+                btn.classList.remove("confirm");
+            }, 3000);
+            return;
+        }
+        clearTimeout(timer);
+        armed = false;
+        btn.textContent = defaultLabel;
+        btn.classList.remove("confirm");
+        onConfirm();
+    });
 }
 
+function startNewSession(){
+    leaderboard.session = {};
+    leaderboard.sessionStarted = Date.now();
+    streaks = {};
+    saveLeaderboard();
+    renderLeaderboard();
+}
+
+function wipeAllTimeRecords(){
+    leaderboard.allTime = {};
+    saveLeaderboard();
+    renderLeaderboard();
+}
+
+armConfirmButton(document.getElementById("clearLB"), startNewSession);
+armConfirmButton(document.getElementById("wipeAllTime"), wipeAllTimeRecords);
+
+/* ---- audio: one shared master gain, so the volume slider, the mute
+   checkbox, and every effect (landing chime + xylophone) all agree
+   instead of each sound hardcoding its own level ---- */
+let audioCtx = null;
+let masterGain = null;
+
+function ensureAudio(){
+    try{
+        if(!audioCtx){
+            audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+            masterGain = audioCtx.createGain();
+            masterGain.gain.value = CONFIG.volume;
+            masterGain.connect(audioCtx.destination);
+        }
+        // browsers suspend the context until a user gesture; resume
+        // opportunistically any time we're about to make a sound so
+        // playback doesn't silently fail after e.g. a tab switch
+        if(audioCtx.state === "suspended"){
+            audioCtx.resume().catch(()=>{});
+        }
+    }catch(e){}
+    return audioCtx;
+}
+
+function setMasterVolume(vol, immediate){
+    CONFIG.volume = Math.max(0, Math.min(1, Number(vol)));
+    if(!audioCtx || !masterGain) return; // applied lazily once audio unlocks
+    if(immediate){
+        masterGain.gain.value = CONFIG.volume;
+    }else{
+        // ramped, so dragging the slider doesn't click/pop
+        masterGain.gain.setTargetAtTime(CONFIG.volume, audioCtx.currentTime, 0.01);
+    }
+}
+
+/* ---- simple landing chime, pitched by score ---- */
+function playLandSound(score) {
+    try {
+        ensureAudio();
+
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+
+        osc.type = "sine";
+
+        const freq = 220 + (score / 100) * 440;
+        osc.frequency.value = freq;
+
+        gain.gain.value = 1;
+
+        osc.connect(gain).connect(masterGain);
+
+        osc.start();
+
+        gain.gain.exponentialRampToValueAtTime(
+            0.0001,
+            audioCtx.currentTime + 0.35
+        );
+
+        osc.stop(audioCtx.currentTime + 0.35);
+
+    } catch (e) {}
+}
 /* ============================================================
    XYLOPHONE MODE (pure CSS 3D — no WebGL, so it always renders
    reliably, including inside OBS Browser Sources where hardware
@@ -815,10 +1181,33 @@ let xyloPlankEls = [];
 
 /* ---- scale + frequency math ---- */
 
+// The widget spans the full window width, so wider screens get more room
+// for plank rows: scale the number of octaves covered to the viewport so
+// the row always fills the width with sensibly-sized planks instead of a
+// fixed note count stretched (or squeezed) to fit.
+function getXyloOctaveCount(){
+    const w = window.innerWidth;
+    if(w < 700) return 1;
+    if(w < 1100) return 2;
+    if(w < 1600) return 3;
+    return 4;
+}
+
 function buildXyloScale(){
     const base = XYLO_SCALES[CONFIG.xylophone.scale] || XYLO_SCALES.major;
-    // Ascend edge->center, then mirror back down: low, ..., HIGH (resolving), ..., low
-    xyloFullScale = base.concat(base.slice(0,-1).reverse());
+    const octaves = getXyloOctaveCount();
+
+    // Ascend edge->center across `octaves` octaves, then mirror back down:
+    // low, ..., HIGH (resolving peak), ..., low. Each octave contributes
+    // its steps minus the top one (which becomes the next octave's root),
+    // so the climb is continuous; the single highest note is the peak.
+    const ascending = [];
+    for(let o=0; o<octaves; o++){
+        base.slice(0,-1).forEach(step => ascending.push(o*12 + step));
+    }
+    ascending.push((octaves-1)*12 + base[base.length-1]);
+
+    xyloFullScale = ascending.concat(ascending.slice(0,-1).reverse());
     return xyloFullScale;
 }
 
@@ -842,7 +1231,7 @@ function getXyloZoneIndex(x){
 
 function playXylophoneNote(freq){
     try{
-        if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+        ensureAudio();
         const t0 = audioCtx.currentTime;
         const partials = [[1,0.55],[3.0,0.20],[6.3,0.07]];
         partials.forEach(([mult,amp])=>{
@@ -851,7 +1240,7 @@ function playXylophoneNote(freq){
             osc.type = "sine";
             osc.frequency.value = freq*mult;
             gain.gain.value = amp*0.5;
-            osc.connect(gain).connect(audioCtx.destination);
+            osc.connect(gain).connect(masterGain);
             osc.start(t0);
             gain.gain.exponentialRampToValueAtTime(0.0001, t0+0.5);
             osc.stop(t0+0.5);
@@ -860,8 +1249,12 @@ function playXylophoneNote(freq){
 }
 
 function playResolvingJingle(){
-    const base = XYLO_SCALES[CONFIG.xylophone.scale] || XYLO_SCALES.major;
-    base.forEach((semi,i)=>{
+    // Play the actual ascending half of the built (possibly multi-octave)
+    // scale up to the resolving peak, rather than assuming a single octave.
+    const scale = xyloFullScale.length ? xyloFullScale : buildXyloScale();
+    const centerIdx = Math.floor(scale.length/2);
+    const ascending = scale.slice(0, centerIdx+1);
+    ascending.forEach((semi,i)=>{
         setTimeout(()=>playXylophoneNote(xyloFreq(semi)), i*90);
     });
 }
@@ -983,29 +1376,7 @@ function shouldTrigger(username, message){
     return true;
 }
 
-function showConnectHint(msg){
-    const hint = document.getElementById("connectHint");
-    if(!msg){
-        hint.style.display = "none";
-        hint.textContent = "";
-        return;
-    }
-    hint.style.display = "block";
-    hint.textContent = msg;
-}
-
-function sanitizeChannelName(raw){
-    let name = raw.trim().toLowerCase();
-    // strip full URLs like https://www.twitch.tv/somechannel
-    name = name.replace(/^https?:\/\/(www\.)?twitch\.tv\//, "");
-    // strip a leading @ and any trailing slash/query string
-    name = name.replace(/^@/, "").split("/")[0].split("?")[0];
-    return name;
-}
-
 document.getElementById("connect").onclick = function(){
-
-    showConnectHint(null);
 
     if(client){
         client.disconnect();
@@ -1015,55 +1386,38 @@ document.getElementById("connect").onclick = function(){
         return;
     }
 
-    if(typeof tmi === "undefined" || window.__tmiLoadFailed){
-        setStatus("offline","Offline");
-        showConnectHint("Couldn't load the Twitch chat library (tmi.js) from unpkg.com. Check your internet connection, or that unpkg.com isn't blocked on this network, then reload the page.");
-        return;
-    }
-
-    const channel = sanitizeChannelName(document.getElementById("channel").value);
+    const channel = document.getElementById("channel").value.trim();
     if(!channel){
         alert("Enter a channel name first.");
         return;
     }
-    document.getElementById("channel").value = channel;
 
     CONFIG.channel = channel;
     saveConfig();
 
-    // unlock audio on user gesture
-    try{ if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){}
+    // unlock/resume audio on this user gesture
+    ensureAudio();
 
     setStatus("connecting","Connecting…");
 
-    try{
-        client = new tmi.Client({
-            connection:{ reconnect:true, secure:true },
-            channels:[channel]
-        });
-    }catch(e){
-        setStatus("offline","Offline");
-        showConnectHint("Failed to create the Twitch client: "+e.message);
-        client = null;
-        return;
-    }
+    client = new tmi.Client({
+        connection:{ reconnect:true, secure:true },
+        channels:[channel]
+    });
 
-    client.connect().catch((err)=>{
+    client.connect().catch(()=>{
         setStatus("offline","Connection failed");
-        showConnectHint("Couldn't connect to #"+channel+". Double-check the channel name is correct and try again."+(err&&err.message?(" ("+err.message+")"):""));
         client = null;
     });
 
     client.on("connected", ()=>{
-        showConnectHint(null);
         setStatus("online","Connected — "+channel);
         document.getElementById("connect").textContent = "Disconnect";
     });
 
-    client.on("disconnected", (reason)=>{
+    client.on("disconnected", ()=>{
         setStatus("offline","Offline");
         document.getElementById("connect").textContent = "Connect";
-        if(reason) showConnectHint("Disconnected: "+reason);
     });
 
     client.on("message", (channelName, tags, message, self)=>{
@@ -1075,6 +1429,7 @@ document.getElementById("connect").onclick = function(){
 };
 
 document.getElementById("testDrop").onclick = function(){
+    ensureAudio();
     addDrop("Test"+Math.floor(Math.random()*99));
 };
 
@@ -1094,16 +1449,39 @@ window.addEventListener("keydown", e=>{
 
 function toggleUI(){
     document.getElementById("panels").classList.toggle("hidden");
-    document.getElementById("leaderboard").classList.toggle("hidden");
+    if(CONFIG.hideLeaderboardOnUIToggle){
+        document.getElementById("leaderboard").classList.toggle("hidden");
+    }
     document.getElementById("counter").classList.toggle("hidden");
 }
 document.getElementById("toggleUI").onclick = toggleUI;
+
+document.getElementById("hideLbToggle").onchange = function(){
+    CONFIG.hideLeaderboardOnUIToggle = this.checked;
+    saveConfig();
+    // keep the leaderboard's visibility in sync with the current UI state
+    // right away, instead of waiting for the next hide/show toggle
+    const uiHidden = document.getElementById("panels").classList.contains("hidden");
+    document.getElementById("leaderboard").classList.toggle("hidden", uiHidden && CONFIG.hideLeaderboardOnUIToggle);
+};
 
 document.getElementById("settingsToggle").onclick = function(){
     const body = document.getElementById("settingsBody");
     const caret = document.getElementById("settingsCaret");
     body.classList.toggle("collapsed");
     caret.textContent = body.classList.contains("collapsed") ? "▸" : "▾";
+    CONFIG.settingsCollapsed = body.classList.contains("collapsed");
+    saveConfig();
+};
+
+document.getElementById("lbToggle").onclick = function(e){
+    if(e.target.closest("#clearLB")) return; // let Reset handle its own click
+    const body = document.getElementById("lbBody");
+    const caret = document.getElementById("lbCaret");
+    body.classList.toggle("collapsed");
+    caret.textContent = body.classList.contains("collapsed") ? "▸" : "▾";
+    CONFIG.leaderboardCollapsed = body.classList.contains("collapsed");
+    saveConfig();
 };
 
 function applyBackground(){
@@ -1131,10 +1509,22 @@ function initSettingsUI(){
     document.getElementById("targetVal").textContent = CONFIG.targetRadius;
     document.getElementById("dropSize").value = CONFIG.dropSize;
     document.getElementById("dropVal").textContent = CONFIG.dropSize;
+    document.getElementById("lateralDrift").value = CONFIG.lateralDrift;
+    document.getElementById("driftVal").textContent = CONFIG.lateralDrift.toFixed(1);
     document.getElementById("soundToggle").checked = CONFIG.sound;
+    document.getElementById("volume").value = CONFIG.volume;
+    document.getElementById("volumeVal").textContent = Math.round(CONFIG.volume*100)+"%";
     document.getElementById("bgMode").value = CONFIG.bgMode;
     document.getElementById("bgColor").value = CONFIG.bgColor;
     applyBackground();
+
+    document.getElementById("hideLbToggle").checked = CONFIG.hideLeaderboardOnUIToggle;
+
+    // Settings and Leaderboard collapse independently of one another
+    document.getElementById("settingsBody").classList.toggle("collapsed", !!CONFIG.settingsCollapsed);
+    document.getElementById("settingsCaret").textContent = CONFIG.settingsCollapsed ? "▸" : "▾";
+    document.getElementById("lbBody").classList.toggle("collapsed", !!CONFIG.leaderboardCollapsed);
+    document.getElementById("lbCaret").textContent = CONFIG.leaderboardCollapsed ? "▸" : "▾";
 
     document.getElementById("xyloToggle").checked = CONFIG.xylophone.enabled;
     document.getElementById("xyloScale").value = CONFIG.xylophone.scale;
@@ -1178,8 +1568,18 @@ document.getElementById("dropSize").oninput = function(){
     document.getElementById("dropVal").textContent = CONFIG.dropSize;
     saveConfig();
 };
+document.getElementById("lateralDrift").oninput = function(){
+    CONFIG.lateralDrift = Number(this.value);
+    document.getElementById("driftVal").textContent = CONFIG.lateralDrift.toFixed(1);
+    saveConfig();
+};
 document.getElementById("soundToggle").onchange = function(){
     CONFIG.sound = this.checked;
+    saveConfig();
+};
+document.getElementById("volume").oninput = function(){
+    setMasterVolume(this.value);
+    document.getElementById("volumeVal").textContent = Math.round(CONFIG.volume*100)+"%";
     saveConfig();
 };
 document.getElementById("bgMode").onchange = function(){
