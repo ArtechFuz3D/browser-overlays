@@ -27,6 +27,7 @@
 <meta name="twitter:title" content="Wire — Ticker Studio">
 <meta name="twitter:description" content="A fully customizable broadcast-style news ticker for your stream footer.">
 <meta name="twitter:image" content="https://artechfuz3d.github.io/browser-overlays/crawl.png">
+
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 
@@ -216,6 +217,20 @@
   .color-row { display: flex; align-items: center; gap: 8px; }
   .color-swatch { width: 38px; height: 38px; padding: 0; border: 1px solid var(--line); background: none; cursor: pointer; flex-shrink: 0; }
 
+  select.ui-input { -webkit-appearance: none; appearance: none; cursor: pointer; }
+
+  .raw-pre {
+    background: var(--panel2); border: 1px solid var(--line); padding: 10px 12px;
+    font-family: 'IBM Plex Mono', monospace; font-size: 11px; line-height: 1.5; color: var(--muted);
+    max-height: 200px; overflow: auto; white-space: pre-wrap; word-break: break-all; margin-top: 10px;
+  }
+
+  .live-flag {
+    display: inline-flex; align-items: center; gap: 6px; margin-left: 10px;
+    font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--accent);
+  }
+
   .presets-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; }
   .preset-card {
     text-align: left; padding: 16px; cursor: pointer;
@@ -251,6 +266,7 @@
 
       <!-- CONTENT -->
       <div class="tab-panel active" id="tab-content">
+        <p class="muted-note" id="liveDrivenNote" style="display:none;">Headlines are being driven by Live Sports and will refresh automatically. Open the Source tab and stop live updates to edit them by hand.</p>
         <div id="itemsList"></div>
         <button class="dashed-btn" id="addItemBtn" style="margin-top:4px;"></button>
         <p class="muted-note" id="emptyNote" style="display:none;">No headlines yet — add one above, or import from a file or URL in the Source tab.</p>
@@ -328,6 +344,7 @@
             <button class="seg-btn active" data-value="manual">Manual</button>
             <button class="seg-btn" data-value="file">File</button>
             <button class="seg-btn" data-value="url">URL</button>
+            <button class="seg-btn" data-value="sports">Live Sports</button>
           </div>
 
           <div id="sourceManual"><p class="muted-note">Edit headlines directly in the Content tab.</p></div>
@@ -347,6 +364,77 @@
             <p class="muted-note" id="urlStatusNote" style="display:none;"></p>
             <button class="primary-btn" id="loadUrlBtn" style="display:none; margin-top:10px;"></button>
             <p class="muted-note">Works best with a direct link to a .txt or .json file. Many sites block cross-origin requests, which shows as an error above.</p>
+          </div>
+
+          <div id="sourceSports" style="display:none; margin-top:16px;">
+            <div class="field-label">Provider</div>
+            <select class="ui-input" id="sportsProviderSelect">
+              <option value="espn">ESPN scoreboard — no key needed</option>
+              <option value="football">Football — API-Football (RapidAPI)</option>
+              <option value="basketball">Basketball — API-Basketball (RapidAPI)</option>
+              <option value="custom">Custom endpoint</option>
+            </select>
+            <p class="muted-note" id="sportsProviderNote"></p>
+
+            <div id="sportsLeagueRow" style="margin-top:14px;">
+              <div class="field-label">Competition</div>
+              <select class="ui-input" id="sportsLeagueSelect"></select>
+            </div>
+
+            <div id="sportsEspnCustomFields" style="display:none; margin-top:14px;">
+              <div class="style-grid">
+                <div><div class="field-label">ESPN sport segment</div><input type="text" class="ui-input mono" id="espnSportInput" placeholder="soccer"></div>
+                <div><div class="field-label">ESPN league slug</div><input type="text" class="ui-input mono" id="espnLeagueInput" placeholder="eng.1"></div>
+              </div>
+              <p class="muted-note">Matches the URL ESPN's own site uses: site.api.espn.com/apis/site/v2/sports/<em>{sport}</em>/<em>{league}</em>/scoreboard — e.g. soccer/eng.1, basketball/nba, football/nfl, hockey/nhl.</p>
+            </div>
+
+            <div id="sportsSeasonRow" style="margin-top:14px;">
+              <div class="field-label">Season (start year)</div>
+              <input type="text" class="ui-input mono" id="sportsSeasonInput" placeholder="2026">
+              <p class="muted-note">The year the season began — e.g. 2026 for the 2026/27 Premier League. Check the provider's docs if matches come back empty.</p>
+            </div>
+
+            <div id="sportsApiKeyRow" style="margin-top:14px;">
+              <div class="field-label">RapidAPI key</div>
+              <input type="password" class="ui-input mono" id="sportsApiKeyInput" placeholder="Paste your RapidAPI key" autocomplete="off">
+              <p class="muted-note">Saved only in this browser's private storage for this widget. This runs client-side, so the key is visible in this page's network requests — fine for a personal OBS source, not for a page you publish publicly.</p>
+            </div>
+
+            <div id="sportsCustomFields" style="display:none; margin-top:14px;">
+              <div class="field-label">Request URL</div>
+              <input type="text" class="ui-input mono" id="sportsCustomUrl" placeholder="https://your-api.p.rapidapi.com/endpoint?params=…">
+              <div class="field-label" style="margin-top:12px;">RapidAPI host header (optional)</div>
+              <input type="text" class="ui-input mono" id="sportsCustomHost" placeholder="your-api.p.rapidapi.com">
+              <div class="style-grid" style="margin-top:14px;">
+                <div><div class="field-label">Array path</div><input type="text" class="ui-input mono" id="pathArray" placeholder="response"></div>
+                <div><div class="field-label">Home team path</div><input type="text" class="ui-input mono" id="pathHome" placeholder="teams.home.name"></div>
+                <div><div class="field-label">Away team path</div><input type="text" class="ui-input mono" id="pathAway" placeholder="teams.away.name"></div>
+                <div><div class="field-label">Home score path</div><input type="text" class="ui-input mono" id="pathHomeScore" placeholder="goals.home"></div>
+                <div><div class="field-label">Away score path</div><input type="text" class="ui-input mono" id="pathAwayScore" placeholder="goals.away"></div>
+                <div><div class="field-label">Status path</div><input type="text" class="ui-input mono" id="pathStatus" placeholder="fixture.status.short"></div>
+                <div><div class="field-label">Minute / clock path</div><input type="text" class="ui-input mono" id="pathMinute" placeholder="fixture.status.elapsed"></div>
+                <div><div class="field-label">League label path</div><input type="text" class="ui-input mono" id="pathLeague" placeholder="league.name"></div>
+              </div>
+              <p class="muted-note">Dot notation into the JSON response, e.g. <em>teams.home.name</em> or <em>response[0].goals.home</em>. Fetch once, check the raw response below, then adjust paths to match.</p>
+            </div>
+
+            <div style="display:flex; gap:16px; align-items:flex-end; margin-top:16px; flex-wrap:wrap;">
+              <div style="flex:1; min-width:180px;">
+                <div class="slider-row"><span class="field-label" style="margin:0;">Refresh every</span><span class="slider-readout" id="sportsPollReadout"></span></div>
+                <input type="range" id="sportsPollSlider" min="15" max="120" step="5">
+              </div>
+              <button class="primary-btn" id="sportsConnectBtn">Connect &amp; go live</button>
+              <button class="primary-btn" id="sportsStopBtn" style="display:none; background:var(--panel2); color:var(--uitext); border:1px solid var(--line);">Stop live updates</button>
+            </div>
+
+            <p class="muted-note" id="sportsStatusNote" style="display:none;"></p>
+
+            <label class="toggle-row" id="sportsRawToggle" style="margin-top:14px;">
+              <span class="toggle-track"><span class="toggle-thumb"></span></span>
+              <span class="toggle-label">Show raw response (for fixing field paths)</span>
+            </label>
+            <pre class="raw-pre" id="sportsRawPre" style="display:none;"></pre>
           </div>
         </div>
       </div>
@@ -515,23 +603,45 @@
   }
 
   /* ---------------- render: ticker track ---------------- */
-  function buildGroupHtml() {
+  function buildGroupHtml(repeat) {
     var glyph = SEP_GLYPH[settings.separatorStyle] || '•';
-    return items.map(function (item) {
+    var onePass = items.map(function (item) {
       return '<span style="display:inline-flex; align-items:center;">' +
         '<span class="item-text" style="font-size:' + settings.fontSize + 'px;">' + (escapeHtml(item.text) || '&nbsp;') + '</span>' +
         '<span class="item-sep" aria-hidden="true" style="margin:0 ' + settings.gap + 'px; font-size:' + (settings.fontSize * 0.85) + 'px;">' + glyph + '</span>' +
         '</span>';
     }).join('');
+    var passes = [];
+    for (var i = 0; i < repeat; i++) passes.push(onePass);
+    return passes.join('');
   }
 
   function renderTicker() {
-    var html = buildGroupHtml();
-    groupAEl.innerHTML = html;
-    groupBEl.innerHTML = html;
     trackEl.className = settings.direction === 'left' ? 'dir-left' : 'dir-right';
     trackEl.id = 'track';
-    computeDuration();
+
+    if (items.length === 0) {
+      var blank = '<span class="item-text" style="font-size:' + settings.fontSize + 'px;">&nbsp;</span>';
+      groupAEl.innerHTML = blank;
+      groupBEl.innerHTML = blank;
+      computeDuration();
+      return;
+    }
+
+    // Measure a single pass first, then repeat it enough times that one
+    // half of the track is at least as wide as the visible ticker —
+    // otherwise, with a short item list, the loop shows a blank gap
+    // before it wraps back around.
+    groupAEl.innerHTML = buildGroupHtml(1);
+    requestAnimationFrame(function () {
+      var singleWidth = groupAEl.getBoundingClientRect().width;
+      var viewportWidth = viewportEl.getBoundingClientRect().width || window.innerWidth || 1200;
+      var repeat = (singleWidth > 0) ? Math.max(1, Math.ceil(viewportWidth / singleWidth) + 1) : 2;
+      var finalHtml = buildGroupHtml(repeat);
+      groupAEl.innerHTML = finalHtml;
+      groupBEl.innerHTML = finalHtml;
+      computeDuration();
+    });
   }
 
   function computeDuration() {
@@ -550,6 +660,12 @@
 
   var resizeObserver = new ResizeObserver(function () { computeDuration(); });
   resizeObserver.observe(groupAEl);
+
+  var tickerResizeTimer = null;
+  window.addEventListener('resize', function () {
+    clearTimeout(tickerResizeTimer);
+    tickerResizeTimer = setTimeout(renderTicker, 150);
+  });
 
   viewportEl.addEventListener('mouseenter', function () { hovering = true; updatePlayState(); });
   viewportEl.addEventListener('mouseleave', function () { hovering = false; updatePlayState(); });
@@ -771,14 +887,17 @@
   var sourceManualEl = $('sourceManual');
   var sourceFileEl = $('sourceFile');
   var sourceUrlEl = $('sourceUrl');
+  var sourceSportsEl = $('sourceSports');
   function refreshSourceMode() {
     sourceManualEl.style.display = sourceMode === 'manual' ? 'block' : 'none';
     sourceFileEl.style.display = sourceMode === 'file' ? 'block' : 'none';
     sourceUrlEl.style.display = sourceMode === 'url' ? 'block' : 'none';
+    sourceSportsEl.style.display = sourceMode === 'sports' ? 'block' : 'none';
   }
   document.querySelectorAll('#sourceSeg .seg-btn').forEach(function (b) {
     b.addEventListener('click', function () {
       sourceMode = b.getAttribute('data-value');
+      if (sourceMode !== 'sports') stopSportsLive();
       document.querySelectorAll('#sourceSeg .seg-btn').forEach(function (x) { x.classList.toggle('active', x === b); });
       refreshSourceMode();
     });
@@ -875,6 +994,377 @@
   loadUrlBtn.addEventListener('click', function () {
     if (pendingUrlItems && pendingUrlItems.length) confirmImport(pendingUrlItems);
   });
+
+  /* ---------------- live sports source ---------------- */
+  var FOOTBALL_LEAGUES = [
+    { id: '39', name: 'Premier League (England)' },
+    { id: '140', name: 'La Liga (Spain)' },
+    { id: '135', name: 'Serie A (Italy)' },
+    { id: '78', name: 'Bundesliga (Germany)' },
+    { id: '61', name: 'Ligue 1 (France)' },
+    { id: '2', name: 'UEFA Champions League' },
+    { id: '253', name: 'MLS (USA)' }
+  ];
+  var BASKETBALL_LEAGUES = [
+    { id: '12', name: 'NBA' }
+  ];
+  var ESPN_PRESETS = [
+    { id: 'eng.1', name: 'Premier League (England)', sport: 'soccer', league: 'eng.1' },
+    { id: 'esp.1', name: 'La Liga (Spain)', sport: 'soccer', league: 'esp.1' },
+    { id: 'ita.1', name: 'Serie A (Italy)', sport: 'soccer', league: 'ita.1' },
+    { id: 'ger.1', name: 'Bundesliga (Germany)', sport: 'soccer', league: 'ger.1' },
+    { id: 'fra.1', name: 'Ligue 1 (France)', sport: 'soccer', league: 'fra.1' },
+    { id: 'uefa.champions', name: 'UEFA Champions League', sport: 'soccer', league: 'uefa.champions' },
+    { id: 'usa.1', name: 'MLS (USA)', sport: 'soccer', league: 'usa.1' },
+    { id: 'nba', name: 'NBA (Basketball)', sport: 'basketball', league: 'nba' },
+    { id: 'nfl', name: 'NFL (American Football)', sport: 'football', league: 'nfl' },
+    { id: 'mlb', name: 'MLB (Baseball)', sport: 'baseball', league: 'mlb' },
+    { id: 'nhl', name: 'NHL (Hockey)', sport: 'hockey', league: 'nhl' },
+    { id: 'custom', name: 'Custom ESPN sport/league…', sport: '', league: '' }
+  ];
+  var PROVIDER_NOTES = {
+    espn: 'No key required — uses ESPN\u2019s public scoreboard, the same JSON its own site loads. It\u2019s unofficial and undocumented, so it could change or get blocked without notice; use \u201cShow raw response\u201d below to check it\u2019s still returning what you expect.',
+    football: 'Needs a free key from rapidapi.com (search "API-Football") or directly from api-football.com.',
+    basketball: 'Needs a free key from rapidapi.com (search "API-Basketball") or directly from api-sports.io.',
+    custom: 'Point this at any JSON API — RapidAPI or otherwise — that returns a list of matches, then map its field names below.'
+  };
+
+  var sportsState = {
+    provider: 'espn',
+    apiKey: '',
+    leagueId: '39',
+    espnPresetId: 'eng.1',
+    espnCustomSport: '',
+    espnCustomLeague: '',
+    season: '',
+    pollSeconds: 30,
+    custom: { url: '', host: '', arrayPath: 'response', homePath: 'teams.home.name', awayPath: 'teams.away.name', homeScorePath: 'goals.home', awayScorePath: 'goals.away', statusPath: 'fixture.status.short', minutePath: 'fixture.status.elapsed', leaguePath: 'league.name' },
+    timer: null,
+    lastRaw: null
+  };
+  var sportsRawVisible = false;
+  var liveSportsActive = false;
+
+  function currentSeasonGuess() {
+    var d = new Date();
+    return String(d.getMonth() >= 6 ? d.getFullYear() : d.getFullYear() - 1);
+  }
+
+  function getPath(obj, path) {
+    if (!path) return undefined;
+    var parts = String(path).replace(/\[(\d+)\]/g, '.$1').split('.').filter(Boolean);
+    var cur = obj;
+    for (var i = 0; i < parts.length; i++) {
+      if (cur === null || cur === undefined) return undefined;
+      cur = cur[parts[i]];
+    }
+    return cur;
+  }
+
+  var sportsProviderSelectEl = $('sportsProviderSelect');
+  var sportsProviderNoteEl = $('sportsProviderNote');
+  var sportsLeagueRowEl = $('sportsLeagueRow');
+  var sportsSeasonRowEl = $('sportsSeasonRow');
+  var sportsApiKeyRowEl = $('sportsApiKeyRow');
+  var sportsCustomFieldsEl = $('sportsCustomFields');
+  var sportsEspnCustomFieldsEl = $('sportsEspnCustomFields');
+  var sportsLeagueSelectEl = $('sportsLeagueSelect');
+  var sportsSeasonInputEl = $('sportsSeasonInput');
+  var sportsApiKeyInputEl = $('sportsApiKeyInput');
+  var espnSportInputEl = $('espnSportInput');
+  var espnLeagueInputEl = $('espnLeagueInput');
+  var sportsPollSliderEl = $('sportsPollSlider');
+  var sportsPollReadoutEl = $('sportsPollReadout');
+  var sportsConnectBtnEl = $('sportsConnectBtn');
+  var sportsStopBtnEl = $('sportsStopBtn');
+  var sportsRawToggleEl = $('sportsRawToggle');
+  var sportsRawPreEl = $('sportsRawPre');
+  var liveDrivenNoteEl = $('liveDrivenNote');
+
+  function leagueListForProvider() {
+    if (sportsProviderSelectEl.value === 'espn') return ESPN_PRESETS;
+    if (sportsProviderSelectEl.value === 'basketball') return BASKETBALL_LEAGUES;
+    return FOOTBALL_LEAGUES;
+  }
+
+  function populateLeagueOptions() {
+    var list = leagueListForProvider();
+    var currentId = sportsProviderSelectEl.value === 'espn' ? sportsState.espnPresetId : sportsState.leagueId;
+    sportsLeagueSelectEl.innerHTML = list.map(function (l) { return '<option value="' + l.id + '">' + l.name + '</option>'; }).join('');
+    var hasMatch = list.some(function (l) { return l.id === currentId; });
+    sportsLeagueSelectEl.value = hasMatch ? currentId : list[0].id;
+  }
+
+  function refreshEspnCustomVisibility() {
+    var isEspn = sportsProviderSelectEl.value === 'espn';
+    var isEspnCustom = isEspn && sportsLeagueSelectEl.value === 'custom';
+    sportsEspnCustomFieldsEl.style.display = isEspnCustom ? 'block' : 'none';
+  }
+
+  function refreshProviderUI() {
+    var provider = sportsProviderSelectEl.value;
+    var isRapidCustom = provider === 'custom';
+    sportsProviderNoteEl.textContent = PROVIDER_NOTES[provider] || '';
+    sportsLeagueRowEl.style.display = isRapidCustom ? 'none' : 'block';
+    sportsSeasonRowEl.style.display = (provider === 'football' || provider === 'basketball') ? 'block' : 'none';
+    sportsApiKeyRowEl.style.display = provider === 'espn' ? 'none' : 'block';
+    sportsCustomFieldsEl.style.display = isRapidCustom ? 'block' : 'none';
+    if (!isRapidCustom) populateLeagueOptions();
+    refreshEspnCustomVisibility();
+  }
+  sportsProviderSelectEl.addEventListener('change', refreshProviderUI);
+  sportsLeagueSelectEl.addEventListener('change', refreshEspnCustomVisibility);
+
+  sportsPollSliderEl.addEventListener('input', function () {
+    sportsState.pollSeconds = Number(sportsPollSliderEl.value);
+    sportsPollReadoutEl.textContent = sportsState.pollSeconds + 's';
+  });
+
+  sportsRawToggleEl.addEventListener('click', function () {
+    sportsRawVisible = !sportsRawVisible;
+    sportsRawToggleEl.querySelector('.toggle-track').classList.toggle('on', sportsRawVisible);
+    renderRawPreview();
+  });
+
+  function renderRawPreview() {
+    if (!sportsRawVisible) { sportsRawPreEl.style.display = 'none'; return; }
+    sportsRawPreEl.style.display = 'block';
+    var str = sportsState.lastRaw ? JSON.stringify(sportsState.lastRaw, null, 2) : 'No response yet — connect first.';
+    sportsRawPreEl.textContent = str.length > 4000 ? str.slice(0, 4000) + '\n…(truncated)' : str;
+  }
+
+  function setSportsStatus(msg, isError) {
+    var note = $('sportsStatusNote');
+    note.textContent = msg || '';
+    note.className = 'muted-note' + (isError ? ' error' : '');
+    note.style.display = msg ? 'flex' : 'none';
+  }
+
+  function syncSportsControls() {
+    sportsProviderSelectEl.value = sportsState.provider;
+    refreshProviderUI();
+    sportsLeagueSelectEl.value = sportsState.provider === 'espn' ? sportsState.espnPresetId : sportsState.leagueId;
+    refreshEspnCustomVisibility();
+    espnSportInputEl.value = sportsState.espnCustomSport || '';
+    espnLeagueInputEl.value = sportsState.espnCustomLeague || '';
+    sportsSeasonInputEl.value = sportsState.season || currentSeasonGuess();
+    sportsApiKeyInputEl.value = sportsState.apiKey || '';
+    $('sportsCustomUrl').value = sportsState.custom.url || '';
+    $('sportsCustomHost').value = sportsState.custom.host || '';
+    $('pathArray').value = sportsState.custom.arrayPath || 'response';
+    $('pathHome').value = sportsState.custom.homePath || '';
+    $('pathAway').value = sportsState.custom.awayPath || '';
+    $('pathHomeScore').value = sportsState.custom.homeScorePath || '';
+    $('pathAwayScore').value = sportsState.custom.awayScorePath || '';
+    $('pathStatus').value = sportsState.custom.statusPath || '';
+    $('pathMinute').value = sportsState.custom.minutePath || '';
+    $('pathLeague').value = sportsState.custom.leaguePath || '';
+    sportsPollSliderEl.value = sportsState.pollSeconds;
+    sportsPollReadoutEl.textContent = sportsState.pollSeconds + 's';
+  }
+
+  function readSportsFieldsIntoState() {
+    sportsState.provider = sportsProviderSelectEl.value;
+    sportsState.apiKey = sportsApiKeyInputEl.value.trim();
+    if (sportsState.provider === 'espn') {
+      sportsState.espnPresetId = sportsLeagueSelectEl.value;
+    } else {
+      sportsState.leagueId = sportsLeagueSelectEl.value;
+    }
+    sportsState.espnCustomSport = espnSportInputEl.value.trim();
+    sportsState.espnCustomLeague = espnLeagueInputEl.value.trim();
+    sportsState.season = sportsSeasonInputEl.value.trim() || currentSeasonGuess();
+    sportsState.pollSeconds = Number(sportsPollSliderEl.value);
+    sportsState.custom = {
+      url: $('sportsCustomUrl').value.trim(),
+      host: $('sportsCustomHost').value.trim(),
+      arrayPath: $('pathArray').value.trim() || 'response',
+      homePath: $('pathHome').value.trim(),
+      awayPath: $('pathAway').value.trim(),
+      homeScorePath: $('pathHomeScore').value.trim(),
+      awayScorePath: $('pathAwayScore').value.trim(),
+      statusPath: $('pathStatus').value.trim(),
+      minutePath: $('pathMinute').value.trim(),
+      leaguePath: $('pathLeague').value.trim()
+    };
+  }
+
+  function buildSportsRequest() {
+    if (sportsState.provider === 'custom') {
+      var headers = {};
+      if (sportsState.apiKey) headers['X-RapidAPI-Key'] = sportsState.apiKey;
+      if (sportsState.custom.host) headers['X-RapidAPI-Host'] = sportsState.custom.host;
+      return { url: sportsState.custom.url, headers: headers, paths: sportsState.custom };
+    }
+    var today = new Date().toISOString().slice(0, 10);
+    if (sportsState.provider === 'basketball') {
+      return {
+        url: 'https://api-basketball.p.rapidapi.com/games?date=' + today + '&league=' + sportsState.leagueId + '&season=' + sportsState.season,
+        headers: { 'X-RapidAPI-Key': sportsState.apiKey, 'X-RapidAPI-Host': 'api-basketball.p.rapidapi.com' },
+        paths: { arrayPath: 'response', homePath: 'teams.home.name', awayPath: 'teams.away.name', homeScorePath: 'scores.home.total', awayScorePath: 'scores.away.total', statusPath: 'status.short', minutePath: 'status.timer', leaguePath: 'league.name' }
+      };
+    }
+    return {
+      url: 'https://api-football-v1.p.rapidapi.com/v3/fixtures?date=' + today + '&league=' + sportsState.leagueId + '&season=' + sportsState.season,
+      headers: { 'X-RapidAPI-Key': sportsState.apiKey, 'X-RapidAPI-Host': 'api-football-v1.p.rapidapi.com' },
+      paths: { arrayPath: 'response', homePath: 'teams.home.name', awayPath: 'teams.away.name', homeScorePath: 'goals.home', awayScorePath: 'goals.away', statusPath: 'fixture.status.short', minutePath: 'fixture.status.elapsed', leaguePath: 'league.name' }
+    };
+  }
+
+  function formatMatchText(m, paths) {
+    var home = getPath(m, paths.homePath);
+    var away = getPath(m, paths.awayPath);
+    if (!home && !away) return null;
+    var hs = getPath(m, paths.homeScorePath);
+    var as = getPath(m, paths.awayScorePath);
+    var status = getPath(m, paths.statusPath);
+    var minute = getPath(m, paths.minutePath);
+    var league = getPath(m, paths.leaguePath);
+    var scoreStr = (hs !== undefined && hs !== null && as !== undefined && as !== null) ? (hs + '\u2013' + as) : 'vs';
+    var tail = [];
+    if (minute !== undefined && minute !== null && minute !== '') tail.push(minute + "'");
+    if (status) tail.push(String(status));
+    var tailStr = tail.length ? (' \u00b7 ' + tail.join(' ')) : '';
+    return (league ? league + ': ' : '') + home + ' ' + scoreStr + ' ' + away + tailStr;
+  }
+
+  function formatEspnEvent(ev, label) {
+    var comp = ev.competitions && ev.competitions[0];
+    var competitors = (comp && comp.competitors) || [];
+    var home, away;
+    for (var i = 0; i < competitors.length; i++) {
+      if (competitors[i].homeAway === 'home') home = competitors[i];
+      if (competitors[i].homeAway === 'away') away = competitors[i];
+    }
+    if (!home || !away) return null;
+    var homeName = (home.team && (home.team.shortDisplayName || home.team.displayName)) || 'Home';
+    var awayName = (away.team && (away.team.shortDisplayName || away.team.displayName)) || 'Away';
+    var scoreStr = (home.score !== undefined && away.score !== undefined) ? (home.score + '\u2013' + away.score) : 'vs';
+    var detail = ev.status && ev.status.type && (ev.status.type.shortDetail || ev.status.type.detail);
+    return (label ? label + ': ' : '') + homeName + ' ' + scoreStr + ' ' + awayName + (detail ? (' \u00b7 ' + detail) : '');
+  }
+
+  function applyMatchTexts(texts, isInitial) {
+    if (texts.length === 0) {
+      setSportsStatus('Connected, but found 0 matches — check "Show raw response" below, or try again on a match day.', true);
+      items = [{ id: uid(), text: 'Waiting for matches…' }];
+    } else {
+      setSportsStatus('Updated ' + new Date().toLocaleTimeString('en-GB') + ' \u00b7 ' + texts.length + ' match' + (texts.length === 1 ? '' : 'es'), false);
+      items = texts.map(function (t) { return { id: uid(), text: t }; });
+    }
+    renderItemsList();
+    renderTicker();
+    if (isInitial) {
+      activeTab = 'content';
+      document.querySelectorAll('.tab-btn').forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-tab') === 'content'); });
+      document.querySelectorAll('.tab-panel').forEach(function (p) { p.classList.toggle('active', p.id === 'tab-content'); });
+    }
+  }
+
+  function fetchEspnOnce(isInitial) {
+    var preset = ESPN_PRESETS.filter(function (p) { return p.id === sportsState.espnPresetId; })[0];
+    var sport = sportsState.espnPresetId === 'custom' ? sportsState.espnCustomSport : (preset && preset.sport);
+    var league = sportsState.espnPresetId === 'custom' ? sportsState.espnCustomLeague : (preset && preset.league);
+    var label = sportsState.espnPresetId === 'custom' ? (league || sport) : (preset && preset.name);
+    if (!sport || !league) { setSportsStatus('Enter an ESPN sport segment and league slug first.', true); return; }
+    var url = 'https://site.api.espn.com/apis/site/v2/sports/' + encodeURIComponent(sport) + '/' + encodeURIComponent(league) + '/scoreboard';
+    setSportsStatus('Fetching…', false);
+    fetch(url).then(function (res) {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.json();
+    }).then(function (data) {
+      sportsState.lastRaw = data;
+      renderRawPreview();
+      var events = Array.isArray(data.events) ? data.events : [];
+      var texts = events.map(function (ev) { return formatEspnEvent(ev, label); }).filter(Boolean);
+      applyMatchTexts(texts, isInitial);
+    }).catch(function (err) {
+      setSportsStatus('Request failed: ' + err.message + '. This unofficial endpoint sometimes blocks cross-origin requests without warning \u2014 if it keeps failing, switch to a keyed provider above.', true);
+    });
+  }
+
+  function fetchSportsOnce(isInitial) {
+    if (sportsState.provider === 'espn') { fetchEspnOnce(isInitial); return; }
+    var req = buildSportsRequest();
+    if (!req.url) { setSportsStatus('Enter a request URL first.', true); return; }
+    setSportsStatus('Fetching…', false);
+    fetch(req.url, { headers: req.headers }).then(function (res) {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.json();
+    }).then(function (data) {
+      sportsState.lastRaw = data;
+      renderRawPreview();
+      var arr = getPath(data, req.paths.arrayPath);
+      if (!Array.isArray(arr)) arr = [];
+      var texts = arr.map(function (m) { return formatMatchText(m, req.paths); }).filter(Boolean);
+      applyMatchTexts(texts, isInitial);
+    }).catch(function (err) {
+      setSportsStatus('Request failed: ' + err.message + '. Check the API key, and that the endpoint allows browser requests (CORS).', true);
+    });
+  }
+
+  function startSportsLive() {
+    readSportsFieldsIntoState();
+    if ((sportsState.provider === 'football' || sportsState.provider === 'basketball') && !sportsState.apiKey) { setSportsStatus('Enter your RapidAPI key first.', true); return; }
+    if (sportsState.provider === 'custom' && !sportsState.custom.url) { setSportsStatus('Enter a request URL first.', true); return; }
+    if (sportsState.provider === 'espn' && sportsState.espnPresetId === 'custom' && (!sportsState.espnCustomSport || !sportsState.espnCustomLeague)) { setSportsStatus('Enter an ESPN sport segment and league slug first.', true); return; }
+    saveSportsConfig();
+    if (sportsState.timer) clearInterval(sportsState.timer);
+    fetchSportsOnce(true);
+    sportsState.timer = setInterval(function () { fetchSportsOnce(false); }, sportsState.pollSeconds * 1000);
+    sportsConnectBtnEl.style.display = 'none';
+    sportsStopBtnEl.style.display = 'inline-flex';
+    liveSportsActive = true;
+    liveDrivenNoteEl.style.display = 'flex';
+  }
+
+  function stopSportsLive() {
+    if (sportsState.timer) { clearInterval(sportsState.timer); sportsState.timer = null; }
+    sportsConnectBtnEl.style.display = 'inline-flex';
+    sportsStopBtnEl.style.display = 'none';
+    liveSportsActive = false;
+    liveDrivenNoteEl.style.display = 'none';
+  }
+
+  sportsConnectBtnEl.addEventListener('click', startSportsLive);
+  sportsStopBtnEl.addEventListener('click', function () {
+    stopSportsLive();
+    setSportsStatus('Live updates stopped.', false);
+  });
+
+  async function saveSportsConfig() {
+    if (!window.storage) return;
+    try {
+      await window.storage.set('sportsTicker:config', JSON.stringify({
+        provider: sportsState.provider, apiKey: sportsState.apiKey, leagueId: sportsState.leagueId,
+        espnPresetId: sportsState.espnPresetId, espnCustomSport: sportsState.espnCustomSport, espnCustomLeague: sportsState.espnCustomLeague,
+        season: sportsState.season, pollSeconds: sportsState.pollSeconds, custom: sportsState.custom
+      }), false);
+    } catch (e) { /* ignore storage errors */ }
+  }
+
+  async function loadSportsConfig() {
+    if (window.storage) {
+      try {
+        var res = await window.storage.get('sportsTicker:config', false);
+        if (res && res.value) {
+          var cfg = JSON.parse(res.value);
+          sportsState.provider = cfg.provider || sportsState.provider;
+          sportsState.apiKey = cfg.apiKey || '';
+          sportsState.leagueId = cfg.leagueId || sportsState.leagueId;
+          sportsState.espnPresetId = cfg.espnPresetId || sportsState.espnPresetId;
+          sportsState.espnCustomSport = cfg.espnCustomSport || '';
+          sportsState.espnCustomLeague = cfg.espnCustomLeague || '';
+          sportsState.season = cfg.season || sportsState.season;
+          sportsState.pollSeconds = cfg.pollSeconds || sportsState.pollSeconds;
+          sportsState.custom = Object.assign({}, sportsState.custom, cfg.custom || {});
+        }
+      } catch (e) { /* no saved config yet, or storage unavailable */ }
+    }
+    syncSportsControls();
+  }
+
+  loadSportsConfig();
 
   /* ---------------- presets tab ---------------- */
   function renderPresets() {
