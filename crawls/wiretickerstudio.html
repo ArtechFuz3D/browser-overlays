@@ -1434,7 +1434,7 @@
   syncAllControls();
 })();
 </script>
-  <!--
+<!--
   Wire — Ticker Studio: preload splash card
   --------------------------------------------------------
   Paste this whole script block anywhere in ticker.html —
@@ -1514,8 +1514,71 @@
 
   function closeSplash() { overlay.classList.remove('wts-open'); }
 
+  // ---- "Get started" button target --------------------------------------
+  // Pick ONE of the options below by uncommenting its `handleGetStarted`
+  // assignment. Whichever assignment runs last is the one that's active —
+  // the default (Option A) just closes the splash and does nothing else.
+  //
+  // None of these need any change to ticker.html. The main script's tab
+  // buttons already carry data-tab="..." and the Source tab's import-mode
+  // buttons already carry data-value="..." inside #sourceSeg, and
+  // #configureBtn already reflects its open/closed state via
+  // aria-expanded. These options just click those existing elements,
+  // which triggers the click listeners the ticker script already has —
+  // no IDs to add, no functions to expose.
+
+  // Option A (default): just close the splash. Zero dependency on the
+  // ticker's markup — safe to use even if you paste this into a
+  // different page entirely.
+  var handleGetStarted = closeSplash;
+
+  // Option B: close the splash, then open the settings panel (lands on
+  // whichever tab was last active — Content, by default).
+  // var handleGetStarted = function () {
+  //   closeSplash();
+  //   var configureBtn = document.getElementById('configureBtn');
+  //   if (configureBtn && configureBtn.getAttribute('aria-expanded') !== 'true') {
+  //     configureBtn.click();
+  //   }
+  // };
+
+  // Option C: close the splash, open the panel, and jump to the Source
+  // tab (without picking a specific import mode).
+  // var handleGetStarted = function () {
+  //   closeSplash();
+  //   var configureBtn = document.getElementById('configureBtn');
+  //   if (configureBtn && configureBtn.getAttribute('aria-expanded') !== 'true') {
+  //     configureBtn.click();
+  //   }
+  //   var sourceTabBtn = document.querySelector('.tab-btn[data-tab="source"]');
+  //   if (sourceTabBtn) sourceTabBtn.click();
+  // };
+
+  // Option D: close the splash, open the panel, jump to the Source tab,
+  // AND switch straight to the Live Sports import mode — the most direct
+  // path from "New: live sports scores" to actually setting it up.
+  var handleGetStarted = function () {
+    closeSplash();
+    var configureBtn = document.getElementById('configureBtn');
+    if (configureBtn && configureBtn.getAttribute('aria-expanded') !== 'true') {
+      configureBtn.click();
+    }
+    var sourceTabBtn = document.querySelector('.tab-btn[data-tab="source"]');
+    if (sourceTabBtn) sourceTabBtn.click();
+    var liveSportsSegBtn = document.querySelector('#sourceSeg .seg-btn[data-value="sports"]');
+    if (liveSportsSegBtn) liveSportsSegBtn.click();
+  };
+
+  // Option E: hand off to a callback the host page defines, so different
+  // deployments can wire up different behavior without editing this file.
+  // Define window.onWtsSplashStart elsewhere on the page to use this.
+  // var handleGetStarted = function () {
+  //   closeSplash();
+  //   if (typeof window.onWtsSplashStart === 'function') window.onWtsSplashStart();
+  // };
+
   document.getElementById('wtsSplashClose').addEventListener('click', closeSplash);
-  document.getElementById('wtsSplashStart').addEventListener('click', closeSplash);
+  document.getElementById('wtsSplashStart').addEventListener('click', function () { handleGetStarted(); });
   overlay.addEventListener('click', function (e) { if (e.target === overlay) closeSplash(); });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeSplash(); });
 
