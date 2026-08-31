@@ -1434,5 +1434,93 @@
   syncAllControls();
 })();
 </script>
+  <!--
+  Wire — Ticker Studio: preload splash card
+  --------------------------------------------------------
+  Paste this whole script block anywhere in ticker.html —
+  right before the closing body tag is cleanest. It's fully
+  self-contained: it injects its own styles and markup and
+  doesn't touch or depend on any of the ticker's existing JS,
+  so it's safe to drop in without conflicts. It reads the
+  page's existing --accent / --panel / --line color variables
+  if present, and falls back to the same amber/dark palette
+  if not.
+-->
+<script>
+(function () {
+  'use strict';
+
+  var css = ""
+    + ".wts-splash-overlay{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;"
+    + "background:rgba(5,6,8,.72);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);"
+    + "opacity:0;pointer-events:none;transition:opacity .25s ease;padding:20px;box-sizing:border-box;}"
+    + ".wts-splash-overlay.wts-open{opacity:1;pointer-events:auto;}"
+    + ".wts-splash-card{position:relative;width:100%;max-width:420px;box-sizing:border-box;"
+    + "background:var(--panel,#12151A);border:1px solid var(--line,#2A323D);border-top:2px solid var(--accent,#FFB020);"
+    + "clip-path:polygon(0 0,100% 0,100% 100%,22px 100%,0 calc(100% - 22px));"
+    + "padding:28px 26px 26px;transform:translateY(10px) scale(.98);transition:transform .25s cubic-bezier(.4,0,.2,1);"
+    + "font-family:'Inter',sans-serif;box-shadow:0 24px 60px rgba(0,0,0,.5);}"
+    + ".wts-splash-overlay.wts-open .wts-splash-card{transform:translateY(0) scale(1);}"
+    + ".wts-splash-close{position:absolute;top:14px;right:14px;width:28px;height:28px;display:flex;align-items:center;"
+    + "justify-content:center;background:var(--panel2,#1B212B);border:1px solid var(--line,#2A323D);color:var(--muted,#8B92A0);"
+    + "cursor:pointer;padding:0;}"
+    + ".wts-splash-close:hover{color:var(--uitext,#ECE9E0);}"
+    + ".wts-splash-eyebrow{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.14em;"
+    + "text-transform:uppercase;color:var(--muted,#8B92A0);margin-bottom:10px;}"
+    + ".wts-splash-title{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:26px;"
+    + "color:var(--uitext,#ECE9E0);margin:0 0 12px;line-height:1.15;}"
+    + ".wts-splash-desc{font-size:13.5px;line-height:1.55;color:var(--uitext,#ECE9E0);opacity:.85;margin:0 0 20px;}"
+    + ".wts-splash-new{display:flex;gap:10px;align-items:flex-start;background:var(--panel2,#1B212B);"
+    + "border:1px solid var(--line,#2A323D);padding:12px 14px;margin-bottom:22px;}"
+    + ".wts-splash-dot{width:8px;height:8px;border-radius:50%;background:var(--accent,#FFB020);flex-shrink:0;"
+    + "margin-top:5px;animation:wtsPulseDot 1.4s ease-in-out infinite;}"
+    + "@keyframes wtsPulseDot{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.35;transform:scale(.65);}}"
+    + ".wts-splash-new-label{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;"
+    + "text-transform:uppercase;color:var(--accent,#FFB020);margin-bottom:4px;}"
+    + ".wts-splash-new-text{font-size:12.5px;line-height:1.5;color:var(--uitext,#ECE9E0);}"
+    + ".wts-splash-start{width:100%;padding:12px 16px;background:var(--accent,#FFB020);"
+    + "color:var(--accent-contrast,#0B0D10);border:none;cursor:pointer;font-family:'IBM Plex Mono',monospace;"
+    + "font-size:12px;letter-spacing:.05em;text-transform:uppercase;}"
+    + ".wts-splash-start:hover{filter:brightness(1.05);}";
+
+  var styleEl = document.createElement('style');
+  styleEl.textContent = css;
+  document.head.appendChild(styleEl);
+
+  var overlay = document.createElement('div');
+  overlay.className = 'wts-splash-overlay';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+  overlay.setAttribute('aria-labelledby', 'wtsSplashTitle');
+  overlay.innerHTML =
+    '<div class="wts-splash-card">' +
+      '<button class="wts-splash-close" id="wtsSplashClose" aria-label="Close">' +
+        '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="4" x2="20" y2="20"/><line x1="20" y1="4" x2="4" y2="20"/></svg>' +
+      '</button>' +
+      '<div class="wts-splash-eyebrow">Wire / Ticker Studio</div>' +
+      '<h2 class="wts-splash-title" id="wtsSplashTitle">Wire — Ticker Studio</h2>' +
+      '<p class="wts-splash-desc">A fully customizable broadcast-style news ticker for your stream footer — colors, speed, sizing, and headline import from a file or a live URL.</p>' +
+      '<div class="wts-splash-new">' +
+        '<span class="wts-splash-dot" aria-hidden="true"></span>' +
+        '<div>' +
+          '<div class="wts-splash-new-label">New</div>' +
+          '<div class="wts-splash-new-text">Now with live sports scores — pull today\u2019s fixtures from ESPN (no key needed) or a RapidAPI provider, for the Premier League and beyond.</div>' +
+        '</div>' +
+      '</div>' +
+      '<button class="wts-splash-start" id="wtsSplashStart">Get started</button>' +
+    '</div>';
+
+  document.body.appendChild(overlay);
+
+  function closeSplash() { overlay.classList.remove('wts-open'); }
+
+  document.getElementById('wtsSplashClose').addEventListener('click', closeSplash);
+  document.getElementById('wtsSplashStart').addEventListener('click', closeSplash);
+  overlay.addEventListener('click', function (e) { if (e.target === overlay) closeSplash(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeSplash(); });
+
+  requestAnimationFrame(function () { overlay.classList.add('wts-open'); });
+})();
+</script>
 </body>
 </html>
