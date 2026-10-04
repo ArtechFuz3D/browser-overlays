@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Weather Overlay</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  html, body { margin:0; height:100%; background:transparent; overflow:hidden;
+    font-family:"Fredoka","Nunito","Varela Round","Segoe UI Variable","Segoe UI",system-ui,sans-serif; }
+  body.preview { background:#1d2430; }
+
+  #wrap { position:absolute; left:24px; top:20px; touch-action:none; cursor:grab; user-select:none; -webkit-user-select:none; }
+  #wrap:hover { outline:1px dashed rgba(128,128,128,.7); outline-offset:8px; border-radius:12px; }
+  #wrap.dragging { cursor:grabbing; }
+
+  /* sticker-style text: fill + outline, no backgrounds */
+  body.light #wrap { --fill:#ffffff; --edge:rgba(58,74,118,.92); }
+  body.dark  #wrap { --fill:#27304d; --edge:rgba(255,255,255,.95); }
+  .sticker { color:var(--fill); --o:2px;
+    text-shadow: var(--o) 0 0 var(--edge), calc(var(--o) * -1) 0 0 var(--edge), 0 var(--o) 0 var(--edge), 0 calc(var(--o) * -1) 0 var(--edge),
+                 var(--o) var(--o) 0 var(--edge), calc(var(--o) * -1) var(--o) 0 var(--edge), var(--o) calc(var(--o) * -1) 0 var(--edge), calc(var(--o) * -1) calc(var(--o) * -1) 0 var(--edge),
+                 0 4px 10px rgba(0,0,0,.28); }
+
+  #main { display:flex; align-items:center; gap:4px; }
+  #icon { width:104px; height:104px; flex:none; filter:drop-shadow(0 3px 5px rgba(0,0,0,.28)); }
+  #icon svg { width:100%; height:100%; overflow:visible; }
+  body.noicon #icon { display:none; }
+  #temp { --o:3.5px; font-size:92px; font-weight:600; line-height:1; letter-spacing:-1px; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  #temp small { font-size:42px; font-weight:500; letter-spacing:0; margin-left:2px; }
+  #temp.pop { animation:pop .6s cubic-bezier(.3,1.6,.5,1); }
+
+  #extras { display:flex; flex-wrap:wrap; gap:6px 18px; margin-top:8px; }
+  .chip { display:none; align-items:center; gap:6px; font-size:21px; font-weight:500; white-space:nowrap; }
+  .chip svg { width:26px; height:26px; flex:none; overflow:visible; filter:drop-shadow(0 2px 2px rgba(0,0,0,.25)); }
+  .rot { display:inline-flex; transition:transform 1.2s cubic-bezier(.3,1.5,.5,1); }
+  #label, #timer, #note, #sea { display:none; margin-top:6px; font-weight:500; white-space:nowrap; }
+  #label { font-size:22px; } #timer { font-size:16px; font-variant-numeric:tabular-nums; }
+  #note, #sea { font-size:16px; white-space:normal; max-width:320px; }
+  body.label #label, body.timer #timer { display:block; }
+
+  /* cute motion */
+  .rays { transform-box:view-box; animation:spin 28s linear infinite; }
+  .bob { animation:bob 4s ease-in-out infinite; }
+  .float { animation:float 5s ease-in-out infinite; }
+  .drop, .flake, .flash, .drift, .twinkle, .wob, .wave { transform-box:fill-box; transform-origin:center; }
+  .drop { animation:fall 1.1s ease-in infinite; }
+  .flake { animation:snow 2.6s ease-in-out infinite; }
+  .flash { animation:flash 3.2s infinite; }
+  .drift { animation:drift 3s ease-in-out infinite alternate; }
+  .twinkle { animation:twinkle 2.2s ease-in-out infinite; }
+  .wob { animation:wob 2.4s ease-in-out infinite; }
+  .wave { animation:slosh 2.2s ease-in-out infinite alternate; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  @keyframes bob { 50% { transform:translateY(-3px); } }
+  @keyframes float { 50% { transform:translate(2px,-3px); } }
+  @keyframes fall { 0% { transform:translateY(-2px); opacity:0; } 25% { opacity:1; } 100% { transform:translateY(16px); opacity:0; } }
+  @keyframes snow { 0% { transform:translate(0,-2px) rotate(0); opacity:0; } 25% { opacity:1; } 100% { transform:translate(5px,16px) rotate(120deg); opacity:0; } }
+  @keyframes flash { 0%,68%,100% { opacity:1; } 72% { opacity:.15; } 76% { opacity:1; } 80% { opacity:.3; } }
+  @keyframes drift { to { transform:translateX(7px); } }
+  @keyframes twinkle { 0%,100% { opacity:.35; transform:scale(.7); } 50% { opacity:1; transform:scale(1.15); } }
+  @keyframes wob { 0%,100% { transform:rotate(-6deg); } 50% { transform:rotate(6deg); } }
+  @keyframes slosh { to { transform:translateX(3px); } }
+  @keyframes pop { 0% { transform:scale(.8); } 100% { transform:scale(1); } }
+  body.noanim *, body.noanim { animation:none !important; transition:none !important; }
+  @media (prefers-reduced-motion: reduce) { * { animation:none !important; } }
+</style>
+</head>
+<body class="light">
+<div id="wrap">
+  <div id="main">
+    <div id="icon"></div>
+    <div id="temp" class="sticker">--<small>°</small></div>
+  </div>
+  <div id="label" class="sticker"></div>
+  <div id="extras">
+    <div class="chip sticker" id="wind">
+      <span class="rot" id="windRot"><svg class="wob" viewBox="0 0 24 24"><path d="M12 2.5 L19.5 14.5 Q20.3 16 18.6 16 L14.2 16 L14.2 20.2 Q14.2 21.5 12.9 21.5 L11.1 21.5 Q9.8 21.5 9.8 20.2 L9.8 16 L5.4 16 Q3.7 16 4.5 14.5 Z" fill="#8fd8ff" stroke="#4b86c4" stroke-width="1.6" stroke-linejoin="round"/><circle cx="10" cy="12" r="1.1" fill="#3b2f55"/><circle cx="14" cy="12" r="1.1" fill="#3b2f55"/></svg></span>
+      <span id="windTxt"></span>
+    </div>
+    <div class="chip sticker" id="waves">
+      <svg viewBox="0 0 24 24"><g class="wave"><path d="M2 10 q3 -5 5 0 t5 0 t5 0 t5 0" fill="none" stroke="#9ddcff" stroke-width="3" stroke-linecap="round"/><path d="M2 17 q3 -5 5 0 t5 0 t5 0 t5 0" fill="none" stroke="#4fb4f5" stroke-width="3" stroke-linecap="round"/></g></svg>
+      <span id="wavesTxt"></span>
+    </div>
+    <div class="chip sticker" id="tide">
+      <svg viewBox="0 0 24 24"><g class="wave"><path d="M2 12 q3 -6 5 0 t5 0 t5 0 t5 0" fill="none" stroke="#4fb4f5" stroke-width="3" stroke-linecap="round"/></g><circle cx="12" cy="19" r="2" fill="#ffd84d" stroke="#f2a93b" stroke-width="1"/></svg>
+      <span id="tideTxt"></span>
+    </div>
+  </div>
+  <div id="sea" class="sticker"></div>
+  <div id="timer" class="sticker"></div>
+  <div id="note" class="sticker"></div>
+</div>
+
+<script>
+/* URL options (lat and lon required):
+   overlay.html?lat=-25.75&lon=28.23&unit=C&color=light
+   color=light|dark     x=0-100&y=0-100 (position)     minutes=5-60
+   icon=0 (hide weather icon)   wind=1   waves=1   tide=1   anim=0 (no animation)
+   label=1&name=Pretoria   timer=1   demo=sun|night|partly|cloud|fog|rain|snow|storm (fake data for testing) */
+const $ = id => document.getElementById(id);
+const q = new URLSearchParams(location.search);
+const framed = window.parent !== window;
+const demo = q.get("demo");
+
+const lat = parseFloat(q.get("lat")), lon = parseFloat(q.get("lon"));
+const name = (q.get("name") || "").slice(0, 60);
+const unit = (q.get("unit") || "C").toUpperCase() === "F" ? "F" : "C";
+const minutes = Math.min(60, Math.max(5, parseInt(q.get("minutes"), 10) || 10));
+const RETRY_MS = 60000;
+const flags = { icon: q.get("icon") !== "0", wind: q.get("wind") === "1", waves: q.get("waves") === "1", tide: q.get("tide") === "1" };
+
+const B = document.body.classList;
+B.add(q.get("color") === "dark" ? "dark" : "light");
+if (q.has("preview")) B.add("preview");
+if (!flags.icon) B.add("noicon");
+if (q.get("anim") === "0") B.add("noanim");
+if (q.get("label") === "1") { B.add("label"); $("label").textContent = name; }
+if (q.get("timer") === "1") B.add("timer");
+
+/* ---------- cute icons ---------- */
+const FACE = (x, y, s = 1) => `<g><circle cx="${x - 7 * s}" cy="${y}" r="${2.4 * s}" fill="#3b2f55"/><circle cx="${x + 7 * s}" cy="${y}" r="${2.4 * s}" fill="#3b2f55"/>` +
+  `<path d="M${x - 4 * s} ${y + 5 * s} Q${x} ${y + 9 * s} ${x + 4 * s} ${y + 5 * s}" fill="none" stroke="#3b2f55" stroke-width="${2 * s}" stroke-linecap="round"/>` +
+  `<circle cx="${x - 13 * s}" cy="${y + 4 * s}" r="${3.2 * s}" fill="#ff9db4" opacity=".7"/><circle cx="${x + 13 * s}" cy="${y + 4 * s}" r="${3.2 * s}" fill="#ff9db4" opacity=".7"/></g>`;
+const RAYS = (cx, cy, r1, r2, w) => { let s = ""; for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4;
+  s += `<line x1="${cx + Math.cos(a) * r1}" y1="${cy + Math.sin(a) * r1}" x2="${cx + Math.cos(a) * r2}" y2="${cy + Math.sin(a) * r2}"/>`; }
+  return `<g class="rays" style="transform-origin:${cx}px ${cy}px" stroke="#ffbe3d" stroke-width="${w}" stroke-linecap="round">${s}</g>`; };
+const SUN = `<g class="bob">${RAYS(50, 50, 30, 38, 5)}<circle cx="50" cy="50" r="21" fill="#ffd84d" stroke="#f2a93b" stroke-width="3"/>${FACE(50, 51)}</g>`;
+const STAR = (x, y, d) => `<g transform="translate(${x} ${y})"><path class="twinkle" style="animation-delay:${d}s" d="M0 -6 Q1 -1 6 0 Q1 1 0 6 Q-1 1 -6 0 Q-1 -1 0 -6Z" fill="#ffe27a"/></g>`;
+const MOON = `<g class="bob"><circle cx="50" cy="52" r="24" fill="#f7eaa8" stroke="#d9c36a" stroke-width="3"/><circle cx="37" cy="41" r="3.5" fill="#ebdc8f"/><circle cx="64" cy="64" r="4" fill="#ebdc8f"/>${FACE(50, 54)}</g>${STAR(18, 24, 0)}${STAR(84, 30, .7)}${STAR(80, 82, 1.4)}`;
+const CLOUD_D = "M30 68 C18 68 14 52 26 48 C26 36 42 30 50 38 C56 28 74 32 74 46 C88 46 90 68 74 68 Z";
+const CLOUD = (tx, ty, sc, fill, stroke) => `<g transform="translate(${tx} ${ty}) scale(${sc})"><g class="float"><path d="${CLOUD_D}" fill="${fill}" stroke="${stroke}" stroke-width="3" stroke-linejoin="round"/>${FACE(52, 54)}</g></g>`;
+const WHITE = ["#ffffff", "#b3c4dc"], GREY = ["#e3ebf6", "#8fa5c6"];
+const DROP = (x, d) => `<g transform="translate(${x} 70)"><path class="drop" style="animation-delay:${d}s" d="M0 0 C-4 5 -5 8 0 10 C5 8 4 5 0 0Z" fill="#62bfff" stroke="#3d95d6" stroke-width="1"/></g>`;
+const FLAKE = (x, d) => `<g transform="translate(${x} 72)"><g class="flake" style="animation-delay:${d}s"><path d="M-4.5 0H4.5M0 -4.5V4.5M-3.2 -3.2L3.2 3.2M-3.2 3.2L3.2 -3.2" stroke="#8fd0ff" stroke-width="2" stroke-linecap="round" fill="none"/></g></g>`;
+
+function iconSvg(code, day) {
+  let body;
+  if (code <= 1) body = day ? SUN : MOON;
+  else if (code === 2) body = (day
+      ? `<g class="bob">${RAYS(66, 34, 20, 27, 4)}<circle cx="66" cy="34" r="14" fill="#ffd84d" stroke="#f2a93b" stroke-width="3"/></g>`
+      : `<g class="bob"><circle cx="66" cy="34" r="14" fill="#f7eaa8" stroke="#d9c36a" stroke-width="3"/></g>${STAR(86, 14, .3)}`)
+      + CLOUD(-6, 12, 1, ...WHITE);
+  else if (code === 3) body = CLOUD(0, 4, 1.05, "#eef2f8", "#a9bad3");
+  else if (code === 45 || code === 48) body = CLOUD(0, -8, 1, ...WHITE) +
+      [70, 78, 86].map((y, i) => `<line class="drift" style="animation-delay:${i * .5}s" x1="${26 + i * 4}" y1="${y}" x2="${70 - i * 3}" y2="${y}" stroke="#bfd0e6" stroke-width="4.5" stroke-linecap="round"/>`).join("");
+  else if (code >= 95) body = CLOUD(0, -8, 1, "#d5deec", "#7f93b3") +
+      `<polygon class="flash" points="54,62 43,80 51,80 47,95 64,73 55,73 60,62" fill="#ffd84d" stroke="#f2a93b" stroke-width="2" stroke-linejoin="round"/>`;
+  else if ((code >= 71 && code <= 77) || code === 85 || code === 86) body = CLOUD(0, -8, 1, ...GREY) + FLAKE(36, 0) + FLAKE(52, .9) + FLAKE(68, 1.7);
+  else body = CLOUD(0, -8, 1, ...GREY) + DROP(36, 0) + DROP(52, .45) + DROP(68, .85);   /* drizzle, rain, showers */
+  return `<svg viewBox="0 0 100 100" aria-hidden="true">${body}</svg>`;
+}
+
+/* ---------- position and drag ---------- */
+const el = $("wrap");
+let pos = null;
+const px = parseFloat(q.get("x")), py = parseFloat(q.get("y"));
+if (!isNaN(px) && !isNaN(py)) pos = { x: px, y: py };
+if (!framed) { try { const s = JSON.parse(localStorage.getItem("wx_pos")); if (s && !isNaN(s.x)) pos = s; } catch (e) {} }
+
+const bounds = () => ({ mx: Math.max(0, innerWidth - el.offsetWidth), my: Math.max(0, innerHeight - el.offsetHeight) });
+function applyPos() {
+  if (!pos) return;
+  const b = bounds();
+  el.style.left = (pos.x / 100 * b.mx) + "px";
+  el.style.top = (pos.y / 100 * b.my) + "px";
+}
+addEventListener("resize", applyPos);
+
+let drag = null;
+el.addEventListener("pointerdown", e => {
+  drag = { dx: e.clientX - el.offsetLeft, dy: e.clientY - el.offsetTop };
+  el.setPointerCapture(e.pointerId); el.classList.add("dragging"); e.preventDefault();
+});
+el.addEventListener("pointermove", e => {
+  if (!drag) return;
+  const b = bounds();
+  el.style.left = Math.min(b.mx, Math.max(0, e.clientX - drag.dx)) + "px";
+  el.style.top = Math.min(b.my, Math.max(0, e.clientY - drag.dy)) + "px";
+});
+el.addEventListener("pointerup", () => {
+  if (!drag) return;
+  drag = null; el.classList.remove("dragging");
+  const b = bounds();
+  pos = { x: b.mx ? Math.round(el.offsetLeft / b.mx * 1000) / 10 : 0, y: b.my ? Math.round(el.offsetTop / b.my * 1000) / 10 : 0 };
+  if (framed) parent.postMessage({ type: "wx-pos", x: pos.x, y: pos.y }, "*");
+  else { try { localStorage.setItem("wx_pos", JSON.stringify(pos)); } catch (e) {} }
+});
+
+/* ---------- rendering ---------- */
+const note = t => { $("note").textContent = t; $("note").style.display = t ? "block" : "none"; };
+const mmss = ms => { const s = Math.max(0, Math.ceil(ms / 1000)); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); };
+const cardinal = d => ["N", "NE", "E", "SE", "S", "SW", "W", "NW"][Math.round(d / 45) % 8];
+const lenText = m => unit === "F" ? (m * 3.28084).toFixed(1) + " ft" : m.toFixed(1) + " m";
+
+function renderMain(d) {
+  $("temp").innerHTML = d.temp + "<small>°" + unit + "</small>";
+  $("temp").classList.remove("pop"); void $("temp").offsetWidth; $("temp").classList.add("pop");
+  if (flags.icon) $("icon").innerHTML = iconSvg(d.code, d.day);
+  if (flags.wind && d.windSpeed != null) {
+    $("wind").style.display = "flex";
+    $("windRot").style.transform = "rotate(" + ((d.windDir + 180) % 360) + "deg)";   /* arrow points where the wind is going */
+    $("windTxt").textContent = cardinal(d.windDir) + " " + Math.round(d.windSpeed) + (unit === "F" ? " mph" : " km/h");
+  }
+}
+function renderSea(s) {
+  const has = s && (s.wave != null || s.tide);
+  $("sea").style.display = "none";
+  $("waves").style.display = flags.waves && s && s.wave != null ? "flex" : "none";
+  $("tide").style.display = flags.tide && s && s.tide ? "flex" : "none";
+  if (flags.waves && s && s.wave != null) $("wavesTxt").textContent = lenText(s.wave);
+  if (flags.tide && s && s.tide) {
+    const t = s.tide;
+    $("tideTxt").textContent = (t.rising ? "↑ " : "↓ ") + (t.h >= 0 ? "+" : "") + lenText(t.h) + " · " + t.kind + " " + t.time;
+  }
+  if ((flags.waves || flags.tide) && !has) { $("sea").textContent = "No sea data for this spot"; $("sea").style.display = "block"; }
+}
+
+/* ---------- data ---------- */
+async function fetchMarine() {
+  const r = await fetch("https://marine-api.open-meteo.com/v1/marine?latitude=" + lat + "&longitude=" + lon +
+    "&current=wave_height&hourly=sea_level_height_msl&forecast_days=2&timezone=auto", { cache: "no-store" });
+  if (!r.ok) throw new Error("HTTP " + r.status);
+  const d = await r.json();
+  const t = d.hourly && d.hourly.time, v = d.hourly && d.hourly.sea_level_height_msl;
+  let tide = null;
+  if (t && v && d.current) {
+    let i = -1;
+    for (let k = 0; k < t.length; k++) { if (t[k] <= d.current.time) i = k; else break; }
+    if (i >= 0 && v[i] != null && v[i + 1] != null) {
+      const rising = v[i + 1] >= v[i];
+      let j = i + 1;
+      while (j + 1 < v.length && v[j + 1] != null && (rising ? v[j + 1] >= v[j] : v[j + 1] <= v[j])) j++;
+      tide = { h: v[i], rising, kind: rising ? "high" : "low", time: t[j].slice(11, 16) };
+    }
+  }
+  return { wave: d.current ? d.current.wave_height : null, tide };
+}
+
+const DEMO = { sun: [0, 1], night: [0, 0], partly: [2, 1], cloud: [3, 1], fog: [45, 1], rain: [63, 1], snow: [73, 1], storm: [95, 1] };
+let nextAt = 0, windowMs = minutes * 60000, busy = false, loaded = false;
+
+async function refresh() {
+  busy = true;
+  let ok = false, temp = null;
+  if (demo) {
+    const [code, day] = DEMO[demo] || DEMO.sun;
+    temp = unit === "F" ? 72 : 22;
+    renderMain({ temp, code, day, windSpeed: unit === "F" ? 9 : 14, windDir: 225 });
+    renderSea({ wave: 0.8, tide: { h: 0.9, rising: true, kind: "high", time: "15:00" } });
+    loaded = true; windowMs = minutes * 60000;
+  } else {
+    const url = "https://api.open-meteo.com/v1/forecast?latitude=" + lat + "&longitude=" + lon +
+      "&current=temperature_2m,weather_code,is_day,wind_speed_10m,wind_direction_10m" +
+      "&temperature_unit=" + (unit === "F" ? "fahrenheit" : "celsius") + "&wind_speed_unit=" + (unit === "F" ? "mph" : "kmh");
+    try {
+      const res = await fetch(url, { cache: "no-store" });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const c = (await res.json()).current;
+      temp = Math.round(c.temperature_2m);
+      renderMain({ temp, code: c.weather_code, day: c.is_day, windSpeed: c.wind_speed_10m, windDir: c.wind_direction_10m });
+      note(""); loaded = ok = true; windowMs = minutes * 60000;
+    } catch (e) {
+      console.warn("Weather fetch failed:", e);
+      note(loaded ? "Update failed, showing last reading." : "Can't reach the weather service. Retrying soon.");
+      windowMs = RETRY_MS;
+    }
+    if (ok && (flags.waves || flags.tide)) {
+      try { renderSea(await fetchMarine()); } catch (e) { console.warn("Marine fetch failed:", e); renderSea(null); }
+    }
+  }
+  nextAt = Date.now() + windowMs;
+  busy = false;
+  applyPos();
+  if (framed && !demo) parent.postMessage({ type: "wx-status", ok, temp, unit, updated: Date.now(), nextAt, windowMs }, "*");
+}
+
+function tick() {
+  const left = nextAt - Date.now();
+  if (left <= 0 && !busy) { refresh(); return; }
+  $("timer").textContent = busy ? "Updating..." : "Next update " + mmss(left);
+}
+
+if (!demo && (isNaN(lat) || isNaN(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180)) {
+  $("temp").textContent = "No location";
+  $("temp").style.fontSize = "32px";
+  note("Create your link on the generator page.");
+} else {
+  applyPos();
+  refresh().then(tick);
+  setInterval(tick, 1000);
+}
+</script>
+</body>
+</html>
