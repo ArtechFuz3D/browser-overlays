@@ -47,6 +47,11 @@
     --radius-md: 16px;
     --radius-lg: 24px;
     --radius-xl: 32px;
+    
+    /* Transitions */
+    --transition-fast: 0.2s ease;
+    --transition-base: 0.3s ease;
+    --transition-slow: 0.5s ease;
 }
 
 * {
@@ -292,6 +297,7 @@ body {
     border: 1px solid var(--glass-border);
     border-radius: var(--radius-lg);
     padding: var(--spacing-lg);
+    transition: all var(--transition-base);
     position: relative;
     overflow: hidden;
 }
@@ -305,10 +311,12 @@ body {
     height: 100%;
     background: var(--gradient-main);
     opacity: 0;
+    transition: opacity var(--transition-base);
     z-index: -1;
 }
 
 .category:hover {
+    transform: translateY(-1px);
     border-color: rgba(102, 126, 234, 0.5);
     box-shadow: 0 16px 48px rgba(102, 126, 234, 0.2);
 }
@@ -337,6 +345,11 @@ body {
     justify-content: center;
     color: white;
     flex-shrink: 0;
+    transition: transform var(--transition-base);
+}
+
+.category:hover .category-icon {
+    transform: scale(1) rotate(0deg);
 }
 
 .category-icon svg {
@@ -389,6 +402,7 @@ body {
 }
 
 /* Link Card */
+/* Link Card */
 .link-card {
     display: flex;
     align-items: center;
@@ -399,6 +413,10 @@ body {
     border-radius: var(--radius-md);
     text-decoration: none;
     color: var(--text-primary);
+    /* Only transition colour properties, never size or transform */
+    transition: background var(--transition-base),
+                border-color var(--transition-base),
+                box-shadow var(--transition-base);
     position: relative;
     overflow: hidden;
 }
@@ -454,7 +472,6 @@ body {
     color: var(--primary);
     flex-shrink: 0;
 }
-
 /* ============================================
    FOOTER
    ============================================ */
@@ -501,11 +518,13 @@ body {
     border-radius: var(--radius-md);
     color: var(--text-secondary);
     text-decoration: none;
+    transition: all var(--transition-base);
 }
 
 .footer-link:hover {
     color: var(--primary);
     border-color: var(--primary);
+    transform: translateY(-2px);
 }
 
 /* ============================================
@@ -637,8 +656,10 @@ button:focus-visible {
     text-decoration: none;
     border-radius: var(--radius-md);
     font-weight: 600;
+    transition: all var(--transition-base);
 }
 
 .back-link:hover {
+    transform: translateY(-1px);
     box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);
 }
