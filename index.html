@@ -1,401 +1,203 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+/* ============================================
+   TOKENS & RESET
+   ============================================ */
+:root {
+    --primary: #667eea;
+    --secondary: #764ba2;
+    --gradient-main: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --gradient-cool: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    --bg: #0f0f23;
+    --text: #ffffff;
+    --text-2: #b4b4c5;
+    --glass: rgba(255, 255, 255, 0.06);
+    --glass-border: rgba(255, 255, 255, 0.14);
+    --radius: 20px;
+    --ease: 0.25s ease;
+}
 
-    <title>Browser Overlays Studio - Interactive Navigation Experience</title>
-    <meta
-      name="description"
-      content="An immersive collection of browser overlays with cutting-edge design, smooth animations, and intuitive navigation. Built for GitHub Pages."
-    />
-    <meta
-      name="keywords"
-      content="browser overlays, modern UI, interactive design, glassmorphism, animations"
-    />
-    <meta name="author" content="artechfuz3d" />
-    <meta name="robots" content="index, follow" />
+* { margin: 0; padding: 0; box-sizing: border-box; }
 
-    <meta property="og:title" content="Browser Overlays Studio" />
-    <meta
-      property="og:description"
-      content="Experience next-generation overlay navigation with stunning visuals."
-    />
-    <meta property="og:type" content="website" />
-    <meta
-      property="og:url"
-      content="https://artechfuz3d.github.io/browser-overlays/"
-    />
-    <meta
-      property="og:image"
-      content="https://artechfuz3d.github.io/browser-overlays/og-image.jpg"
-    />
+body {
+    position: relative; /* tip button is positioned against body */
+    font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    min-height: 100vh;
+    overflow-x: hidden;
+}
 
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Browser Overlays Studio" />
-    <meta
-      name="twitter:description"
-      content="Immersive overlay experiences with modern design."
-    />
-    <meta
-      name="twitter:image"
-      content="https://artechfuz3d.github.io/browser-overlays/og-image.jpg"
-    />
+a { color: inherit; text-decoration: none; }
 
-    <link
-      rel="icon"
-      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎨</text></svg>"
-    />
+/* ============================================
+   BACKGROUND
+   ============================================ */
+.background-animation {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+}
+#particleCanvas { width: 100%; height: 100%; opacity: 0.35; }
 
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&family=Space+Grotesk:wght@600;700&display=swap"
-      rel="stylesheet"
-    />
+.gradient-orb {
+    position: fixed; border-radius: 50%; filter: blur(80px);
+    opacity: 0.35; z-index: 1; pointer-events: none;
+    animation: float 22s ease-in-out infinite;
+}
+.orb-1 { width: 500px; height: 500px; top: -12%; left: -10%;
+    background: radial-gradient(circle, #667eea 0%, transparent 70%); }
+.orb-2 { width: 420px; height: 420px; bottom: -12%; right: -10%;
+    background: radial-gradient(circle, #f093fb 0%, transparent 70%); animation-delay: -8s; }
+.orb-3 { width: 340px; height: 340px; top: 45%; left: 45%;
+    background: radial-gradient(circle, #4facfe 0%, transparent 70%); animation-delay: -15s; }
 
-    <link rel="stylesheet" href="style.css" />
-  </head>
-  <body>
-    <!-- Animated Background -->
-    <div class="background-animation"><canvas id="particleCanvas"></canvas></div>
-    <div class="gradient-orb orb-1"></div>
-    <div class="gradient-orb orb-2"></div>
-    <div class="gradient-orb orb-3"></div>
+@keyframes float {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33%      { transform: translate(30px, -30px) scale(1.1); }
+    66%      { transform: translate(-20px, 20px) scale(0.92); }
+}
 
-    <div class="container">
-      <header class="hero">
-        <h1 class="title">
-          <span class="title-main">Browser Overlays</span>
-          <span class="title-sub">Studio</span>
-        </h1>
-        <p class="subtitle">
-          Explore our curated collection of immersive overlay experiences
-        </p>
-      </header>
+/* ============================================
+   LAYOUT & HERO
+   ============================================ */
+.container {
+    position: relative; z-index: 10;
+    max-width: 1100px; margin: 0 auto;
+    padding: 5rem 1.5rem 3rem;
+}
 
-      <nav class="menu" aria-label="Category navigation menu">
-        <!-- Screensavers -->
-        <section class="category">
-          <div class="category-header">
-            <h2>Screensavers</h2>
-          <p class="category-description">Dynamic LEGO-inspired animations</p>
-          </div>
-          <ul class="category-links">
-            <li>
-              <a href="screensaver/lego-01.html" class="link-card">
-                <span class="link-icon">🧱</span>
-                <span class="link-content">
-                  <span class="link-title">LEGO Screensaver 01</span>
-                  <span class="link-desc">Lego Head Classic Screensaver</span>
-                </span>
-                <span class="link-arrow">→</span>
-              </a>
-            </li>
-            <li>
-              <a href="screensaver/lego-02.html" class="link-card">
-                <span class="link-icon">🎯</span>
-                <span class="link-content">
-                  <span class="link-title">LEGO Screensaver 02</span>
-                  <span class="link-desc">Lego Head Classic Screensaver</span>
-                </span>
-                <span class="link-arrow">→</span>
-              </a>
-            </li>
-            <li>
-              <a href="screensaver/lego-03.html" class="link-card">
-                <span class="link-icon">🎯</span>
-                <span class="link-content">
-                  <span class="link-title">LEGO Screensaver 03</span>
-                  <span class="link-desc">Lego Head Classic Screensaver</span>
-                </span>
-                <span class="link-arrow">→</span>
-              </a>
-            </li>
-          </ul>
-        </section>
+.hero { text-align: center; margin-bottom: 3.5rem; }
 
-        <!-- Shaders -->
-        <section class="category">
-          <div class="category-header">
-            <h2>Shader Graphics</h2>
-          <p class="category-description">Stunning 2d/3d shaders</p>
-          </div>
-          <ul class="category-links">
-            <li>
-              <a href="shaders/mandelbox-sweeper.html" class="link-card">
-                <span class="link-icon">🖼️</span>
-                <span class="link-content">
-                  <span class="link-title">Mandelbox Sweeper</span>
-                  <span class="link-desc">Fractal 3D shader by https://www.twitch.tv/evvvvil_</span>
-                </span>
-                <span class="link-arrow">→</span>
-              </a>
-            </li>
-            <li>
-              <a href="shaders/fire-particles.html" class="link-card">
-                <span class="link-icon">🎨</span>
-                <span class="link-content">
-                  <span class="link-title">Fire Particles</span>
-                  <span class="link-desc">Fire Particles</span>
-                </span>
-                <span class="link-arrow">→</span>
-              </a>
-            </li>
-            <li>
-              <a href="shaders/galaxy-hew42.html" class="link-card">
-                <span class="link-icon">★</span>
-                <span class="link-content">
-                  <span class="link-title">Galaxy-hew42</span>
-                  <span class="link-desc">Galaxy-hew42</span>
-                </span>
-                <span class="link-arrow">→</span>
-              </a>
-            </li>
-          </ul>
-        </section>
+.title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: clamp(2.5rem, 7vw, 4.25rem);
+    font-weight: 700; line-height: 1.1; letter-spacing: -0.02em;
+}
+.title-main, .title-sub {
+    display: block;
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+.title-main { background-image: var(--gradient-main); padding-bottom: 0.1em; }
+.title-sub {
+    background-image: var(--gradient-cool);
+    font-size: 0.4em; letter-spacing: 0.35em; text-transform: uppercase;
+    margin-top: 0.4rem;
+}
 
-        <!-- Crawls -->
-        <section class="category">
-          <div class="category-header">
-            <h2>Crawls</h2>
-          <p class="category-description">Crawl footer overlays</p>
-          </div>
-          <ul class="category-links">
-            <li>
-              <a href="crawls/wiretickerstudio" class="link-card">
-                <span class="link-icon">🔳</span>
-                <span class="link-content">
-                  <span class="link-title">Wire / Ticker Studio</span>
-                  <span class="link-desc">Customisable crawl</span>
-                </span>
-                <span class="link-arrow">→</span>
-              </a>
-            </li>
-          </ul>
-        </section>
+.subtitle {
+    margin: 1.25rem auto 0; max-width: 48ch;
+    color: var(--text-2); font-size: clamp(1rem, 2vw, 1.15rem);
+}
 
-        <!-- Videos -->
-        <section class="category">
-          <div class="category-header">
-            <h2>Video Overlay</h2>
-          <p class="category-description">Video overlays</p>
-          </div>
-          <ul class="category-links">
-            <li>
-              <a href="video/3d-cube.html" class="link-card">
-                <span class="link-icon">🖼️</span>
-                <span class="link-content">
-                  <span class="link-title">3D Cube Video Projector</span>
-                  <span class="link-desc">3D Cube Video Projector</span>
-                </span>
-                <span class="link-arrow">→</span>
-              </a>
-            </li>
-          </ul>
-        </section>
+/* ============================================
+   CATEGORIES
+   ============================================ */
+.menu {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 440px), 1fr));
+    gap: 1.5rem; align-items: start;
+}
 
-        <!-- Audio -->
-        <section class="category">
-          <div class="category-header">
-            <h2>Audio Overlays</h2>
-          <p class="category-description">Audio overlays</p>
-          </div>
-          <ul class="category-links">
-            <li>
-              <a href="audio/music-redeem-player.html" class="link-card">
-                <span class="link-icon">🖼️</span>
-                <span class="link-content">
-                  <span class="link-title">Music Redeems &amp; Playlist Player</span>
-                  <span class="link-desc">A simple Music Player as browser overlay that uses auth to listen for redeems and trigger music playback. Variable source control.</span>
-                </span>
-                <span class="link-arrow">→</span>
-              </a>
-            </li>
-            <li>
-              <a href="audio/Bouncy-Head-VTuber.html" class="link-card">
-                <span class="link-icon">🖼️</span>
-                <span class="link-content">
-                  <span class="link-title">Bouncy Head VTuber</span>
-                  <span class="link-desc">Streaming avatar with customisation controls and a bouncy head</span>
-                </span>
-                <span class="link-arrow">→</span>
-              </a>
-            </li>
-            <li>
-              <a href="audio/Bouncy-Head-VTuber.html" class="link-card">
-                <span class="link-icon">🖼️</span>
-                <span class="link-content">
-                  <span class="link-title">Bouncy Head VTuber Websocket</span>
-                  <span class="link-desc">Streaming avatar with customisation controls and a bouncy head. Websocket OBS</span>
-                </span>
-                <span class="link-arrow">→</span>
-              </a>
-            </li>
-          </ul>
-        </section>
+.category {
+    background: var(--glass);
+    backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius);
+    padding: 1.75rem;
+    transition: border-color var(--ease), box-shadow var(--ease);
+}
+.category:hover {
+    border-color: rgba(102, 126, 234, 0.5);
+    box-shadow: 0 12px 40px rgba(102, 126, 234, 0.15);
+}
 
-        <!-- Galleries -->
-        <section class="category">
-          <div class="category-header">
-            <h2>Galleries</h2>
-          <p class="category-description">Stunning image showcases</p>
-          </div>
-          <ul class="category-links">
-            <li>
-              <a href="gallery/images-01.html" class="link-card">
-                <span class="link-icon">🖼️</span>
-                <span class="link-content">
-                  <span class="link-title">Image Gallery 01</span>
-                  <span class="link-desc">Grid-based photo layout</span>
-                </span>
-                <span class="link-arrow">→</span>
-              </a>
-            </li>
-            <li>
-              <a href="gallery/images-02.html" class="link-card">
-                <span class="link-icon">🎨</span>
-                <span class="link-content">
-                  <span class="link-title">Image Gallery 02</span>
-                  <span class="link-desc">Masonry style presentation</span>
-                </span>
-                <span class="link-arrow">→</span>
-              </a>
-            </li>
-          </ul>
-        </section>
+.category-header {
+    padding-left: 1rem;
+    border-left: 3px solid transparent;
+    border-image: linear-gradient(180deg, #667eea, #764ba2) 1;
+    margin-bottom: 1.25rem;
+}
+.category h2 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.4rem; font-weight: 600; line-height: 1.25;
+}
+.category-description { font-size: 0.875rem; color: var(--text-2); }
 
-        <!-- Info Panels -->
-        <section class="category">
-          <div class="category-header">
-            <h2>Info Panels</h2>
-          <p class="category-description">Interactive information displays</p>
-          </div>
-          <ul class="category-links">
-            <li>
-              <a href="infographics/weather/index.html" class="link-card">
-                <span class="link-icon">📊</span>
-                <span class="link-content">
-                  <span class="link-title">Weather Overlay</span>
-                  <span class="link-desc">Customisable weather overlay</span>
-                </span>
-                <span class="link-arrow">→</span>
-              </a>
-            </li>
-            <li>
-              <a href="info/panel-02.html" class="link-card">
-                <span class="link-icon">📈</span>
-                <span class="link-content">
-                  <span class="link-title">Info Panel 02</span>
-                  <span class="link-desc">Data visualization panel</span>
-                </span>
-                <span class="link-arrow">→</span>
-              </a>
-            </li>
-          </ul>
-        </section>
+.category-links {
+    list-style: none;
+    display: flex; flex-direction: column; gap: 0.6rem;
+}
 
-        <!-- Drop Games -->
-        <section class="category">
-          <div class="category-header">
-            <h2>Drop Games</h2>
-          <p class="category-description">Interactive chat games based on the drop game style</p>
-          </div>
-          <ul class="category-links">
-            <li>
-              <a href="dropgames/RippleDrop.html" class="link-card">
-                <span class="link-icon">📊</span>
-                <span class="link-content">
-                  <span class="link-title">Ripple Drop</span>
-                  <span class="link-desc">Auditory chat game for twitch</span>
-                </span>
-                <span class="link-arrow">→</span>
-              </a>
-            </li>
-          </ul>
-        </section>
-      </nav>
+/* ============================================
+   LINK CARDS (colour-only hover, size never changes)
+   ============================================ */
+.link-card {
+    display: flex; align-items: center; gap: 1rem;
+    padding: 0.9rem 1rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+    transition: background var(--ease), border-color var(--ease);
+}
+.link-card:hover {
+    background: rgba(102, 126, 234, 0.12);
+    border-color: rgba(102, 126, 234, 0.5);
+}
 
-      <footer class="footer">
-        <p>Crafted with ❤️ by <strong>artechfuz3d</strong></p>
-        <a
-          href="https://github.com/artechfuz3d"
-          target="_blank"
-          rel="noopener"
-          class="footer-link"
-        >
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true">
-            <path
-              d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"
-            />
-          </svg>
-          GitHub
-        </a>
-      </footer>
-    </div>
+.link-icon {
+    flex: 0 0 2.6rem; height: 2.6rem;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.25rem;
+    background: rgba(102, 126, 234, 0.14);
+    border-radius: 10px;
+}
+.link-content { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.link-title { font-weight: 600; line-height: 1.35; }
+.link-desc { font-size: 0.85rem; color: var(--text-2); overflow-wrap: anywhere; }
 
-    <script src="script.js" defer></script>
+.link-arrow { flex: 0 0 auto; color: var(--text-2); transition: color var(--ease), transform var(--ease); }
+.link-card:hover .link-arrow { color: var(--primary); transform: translateX(4px); }
 
-    <!-- Sponsor Button  -->
-  <!-- TRIGGER BUTTON -->
-<button id="support-trigger" style="background:#2c5c64;color:#fff;border:none;padding:14px 28px;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;margin:40px;left:70%;top:-30px;position:absolute;z-index:9999;">💸 TIP</button>
+/* ============================================
+   FOOTER
+   ============================================ */
+.footer {
+    margin-top: 3.5rem; text-align: center; color: var(--text-2);
+    display: flex; flex-direction: column; align-items: center; gap: 1rem;
+}
+.footer strong { color: var(--text); }
+.footer-link {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    padding: 0.5rem 1.1rem;
+    background: var(--glass); border: 1px solid var(--glass-border);
+    border-radius: 999px;
+    transition: color var(--ease), border-color var(--ease);
+}
+.footer-link:hover { color: var(--primary); border-color: var(--primary); }
 
-<!-- OVERLAY -->
-<div id="afz-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.78);backdrop-filter:blur(6px);z-index:99999;align-items:center;justify-content:center;padding:16px;">
-  <div id="afz-modal" style="position:relative;width:100%;max-width:700px;max-height:90vh;border-radius:18px;overflow-y:auto;box-shadow:0 32px 80px rgba(0,0,0,0.7);background:#0a0a0f;">
-    <button id="afz-close" style="position:sticky;top:12px;float:right;margin:12px 12px 0 0;width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);color:#fff;font-size:16px;cursor:pointer;z-index:10;">✕</button>
-    <div id="afz-content" style="padding:0;"></div>
-  </div>
-</div>
+/* ============================================
+   PAGE-LOAD REVEAL
+   ============================================ */
+@keyframes reveal { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+.hero, .category, .footer { animation: reveal 0.6s ease backwards; }
+.category:nth-child(1) { animation-delay: 0.10s; }
+.category:nth-child(2) { animation-delay: 0.16s; }
+.category:nth-child(3) { animation-delay: 0.22s; }
+.category:nth-child(4) { animation-delay: 0.28s; }
+.category:nth-child(5) { animation-delay: 0.34s; }
+.category:nth-child(6) { animation-delay: 0.40s; }
+.category:nth-child(7) { animation-delay: 0.46s; }
+.category:nth-child(8) { animation-delay: 0.52s; }
+.footer { animation-delay: 0.6s; }
 
-<script>
-  var loaded = false;
+/* ============================================
+   ACCESSIBILITY & RESPONSIVE
+   ============================================ */
+a:focus-visible, button:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 
-  document.getElementById('support-trigger').addEventListener('click', openWidget);
-  document.getElementById('afz-close').addEventListener('click', closeWidget);
-  document.getElementById('afz-overlay').addEventListener('click', function(e) {
-    if (e.target === this) closeWidget();
-  });
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') closeWidget();
-  });
-
-  function openWidget() {
-    var o = document.getElementById('afz-overlay');
-    o.style.display = 'flex';
-    document.body.style.overflow = 'hidden';
-    if (!loaded) fetchSupport();
-  }
-
-  function closeWidget() {
-    document.getElementById('afz-overlay').style.display = 'none';
-    document.body.style.overflow = '';
-  }
-
-  function showFallback() {
-    document.getElementById('afz-content').innerHTML = '<div style="font-family:sans-serif;padding:48px 32px;text-align:center;color:#f0eee8;background:#0a0a0f;border-radius:18px;"><p style="color:#ff4c29;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:8px;">Support the work</p><h2 style="font-size:42px;margin:0 0 8px;color:#f0eee8;">FUEL THE FIRE</h2><p style="color:#7a7a8a;margin-bottom:36px;font-size:14px;">Pick your move below.</p><div style="display:flex;flex-direction:column;gap:14px;max-width:380px;margin:0 auto;"><a href="https://streamelements.com/hewfunkingknewit/tip" target="_blank" rel="noopener" style="background:#ff4c29;color:#fff;padding:18px 24px;border-radius:12px;text-decoration:none;font-weight:700;font-size:16px;display:block;">💸 Send a Tip</a><a href="https://shop.artechfuz3d.xyz/products/sponsor" target="_blank" rel="noopener" style="background:#1a1a24;color:#f0eee8;border:1px solid rgba(255,255,255,0.1);padding:18px 24px;border-radius:12px;text-decoration:none;font-weight:700;font-size:16px;display:block;">🚀 Become a Sponsor</a></div></div>';
-    loaded = true;
-  }
-
-  function fetchSupport() {
-    fetch('https://artechfuz3d.github.io/support/')
-      .then(function(r) {
-        if (!r.ok) throw new Error('bad response');
-        return r.text();
-      })
-      .then(function(html) {
-        var parser = new DOMParser();
-        var doc = parser.parseFromString(html, 'text/html');
-        var styles = Array.from(doc.querySelectorAll('style')).map(function(el) { return el.outerHTML; }).join('\n');
-        var body = doc.body.innerHTML;
-        document.getElementById('afz-content').innerHTML = styles + body;
-        loaded = true;
-      })
-      .catch(function() {
-        showFallback();
-      });
-  }
-</script>
-  </body>
-</html>
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+@media (max-width: 600px) {
+    .container { padding: 4.5rem 1rem 2rem; }
+    .category { padding: 1.25rem; }
+}
