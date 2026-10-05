@@ -663,3 +663,10 @@ button:focus-visible {
     transform: translateY(-1px);
     box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);
 }
+.link-card,
+.link-card .link-content,
+.link-card .link-arrow {
+    transform: none !important;
+    scale: none !important;
+    height: auto !important;
+}
