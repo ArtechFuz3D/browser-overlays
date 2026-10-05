@@ -521,7 +521,7 @@ style.textContent = `
         background: radial-gradient(circle, rgba(102, 126, 234, 0.3) 0%, transparent 70%);
         border-radius: 50%;
         pointer-events: none;
-        transform: translate(-50%, -50%);
+        transform: translate(-0%, -0%);
         transition: opacity 0.3s ease;
         z-index: 0;
     }
@@ -544,7 +544,7 @@ style.textContent = `
         height: 100%;
         background: radial-gradient(circle, rgba(102, 126, 234, 0.3) 0%, transparent 70%);
         border-radius: 50%;
-        transform: translate(-50%, -50%) scale(0);
+        transform: translate(-0%, -0%) scale(1);
         animation: ripple 0.6s ease-out;
         pointer-events: none;
     }
