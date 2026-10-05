@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Stream Weather Overlay: free cute weather for OBS</title>
+<title>Stream Weather Overlay: free cute weather for streaming</title>
 <meta name="description" content="Free, cute weather overlay for OBS and streaming. Pick a city, copy a link, and show live temperature, weather icons, wind, waves and tide. No account needed.">
-<meta name="keywords" content="OBS weather overlay, stream weather widget, browser source weather, Twitch weather overlay, YouTube stream overlay, temperature overlay, transparent overlay, Open-Meteo">
+<meta name="keywords" content="Streaming weather overlay, stream weather widget, browser source weather, Twitch weather overlay, YouTube stream overlay, temperature overlay, transparent overlay, Open-Meteo">
 <meta name="author" content="artechfuz3d">
 <meta name="robots" content="index, follow, max-image-preview:large">
 <link rel="canonical" href="https://artechfuz3d.github.io/browser-overlays/infographics/weather/">
-<meta name="theme-color" content="#0f131a">
-<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#0a0a0a">
+<meta name="color-scheme" content="light">
 <meta name="application-name" content="Stream Weather Overlay">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 
@@ -24,7 +24,7 @@
 <!-- Open Graph -->
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Stream Weather Overlay">
-<meta property="og:title" content="Stream Weather Overlay: free cute weather for OBS">
+<meta property="og:title" content="Stream Weather Overlay: free cute weather for streaming">
 <meta property="og:description" content="Free, cute weather overlay for OBS and streaming. Pick a city, copy a link, and show live temperature, weather icons, wind, waves and tide. No account needed.">
 <meta property="og:url" content="https://artechfuz3d.github.io/browser-overlays/infographics/weather/">
 <meta property="og:locale" content="en_US">
@@ -37,8 +37,8 @@
 
 <!-- Twitter / X -->
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Stream Weather Overlay: free cute weather for OBS">
-<meta name="twitter:description" content="Free, cute weather overlay for OBS and streaming. Pick a city, copy a link, and show live temperature, weather icons, wind, waves and tide. No account needed.">
+<meta name="twitter:title" content="Stream Weather Overlay: free cute weather for streaming">
+<meta name="twitter:description" content="Free, cute weather overlay for streaming. Pick a city, copy a link, and show live temperature, weather icons, wind, waves and tide. No account needed.">
 <meta name="twitter:image" content="https://artechfuz3d.github.io/browser-overlays/infographics/weather/og-image.png">
 <meta name="twitter:image:alt" content="A smiling white cloud with pink cheeks next to a sun, beside the title Stream Weather Overlay">
 
@@ -57,77 +57,235 @@
   "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
 }
 </script>
+<!-- Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
 <style>
-  :root { --bg:#0f131a; --panel:#171d27; --field:#0f141b; --line:#2a3443; --text:#eef2f7; --dim:#97a4b6; --accent:#7cc4ff; --bad:#ffb4a8; }
-  * { box-sizing:border-box; }
-  body { margin:0; background:var(--bg); color:var(--text); font-family:"Segoe UI Variable","Segoe UI",system-ui,-apple-system,Helvetica,Arial,sans-serif; line-height:1.5; }
-  main { max-width:1000px; margin:0 auto; padding:36px 20px 56px; }
-  h1 { font-size:30px; margin:0 0 6px; letter-spacing:-.5px; }
-  .lead { margin:0 0 20px; color:var(--dim); max-width:60ch; }
-  #banner { display:none; margin-bottom:20px; padding:12px 14px; border-radius:8px; border:1px solid #5a3a35; background:#2a1b19; color:var(--bad); font-size:14px; }
-  .grid { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:20px; align-items:start; }
-  @media (max-width:820px) { .grid { grid-template-columns:1fr; } }
-  .col { display:flex; flex-direction:column; gap:16px; }
-  section { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:18px; }
-  h2 { font-size:15px; margin:0 0 12px; }
-  input[type=text], input[type=number] { width:100%; padding:10px 12px; border-radius:8px; border:1px solid var(--line); background:var(--field); color:var(--text); font-size:15px; }
-  :focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
-  ul { list-style:none; margin:8px 0 0; padding:0; border-radius:8px; overflow:hidden; border:1px solid var(--line); }
-  ul:empty { display:none; }
-  ul li { padding:10px 12px; background:var(--field); border-top:1px solid var(--line); cursor:pointer; }
-  ul li:first-child { border-top:0; }
-  ul li:hover { background:#1c2837; }
-  ul li span { color:var(--dim); }
-  .status { margin-top:10px; font-size:14px; color:var(--dim); }
-  .status.err { color:var(--bad); }
-  details { margin-top:12px; font-size:14px; color:var(--dim); }
-  summary { cursor:pointer; }
-  .coords { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px; }
-  .coords .wide { grid-column:1 / -1; }
-  .btn { padding:10px 18px; border:0; border-radius:8px; background:var(--accent); color:#0c1622; font-weight:600; font-size:15px; cursor:pointer; }
-  .btn:disabled { opacity:.4; cursor:not-allowed; }
-  .btn.ghost { background:transparent; color:var(--text); border:1px solid var(--line); }
-  .seg { display:inline-flex; border:1px solid var(--line); border-radius:8px; overflow:hidden; }
-  .seg button { padding:9px 22px; border:0; background:transparent; color:var(--text); font-size:15px; cursor:pointer; }
-  .seg button.on { background:var(--accent); color:#0c1622; font-weight:600; }
-  .opt { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:10px 0; font-size:15px; }
-  .check { display:flex; align-items:center; gap:10px; margin:8px 0; font-size:15px; cursor:pointer; }
-  .check input { width:18px; height:18px; accent-color:var(--accent); }
-  select { background:var(--field); color:var(--text); border:1px solid var(--line); border-radius:8px; padding:7px 8px; font-size:15px; }
+/* ============================================
+   TOKENS & RESET
+   ============================================ */
+:root {
+  --sky: #4fb4f5;       /* light blue: fills, bars, focus */
+  --sky-ink: #0b72c2;   /* darker blue for text on white */
+  --green: #2fbf71;
+  --orange: #ff7a1a;
+  --orange-ink: #b84a00;
+  --black: #0a0a0a;
+  --white: #ffffff;
+  --grey: #5f6672;
+  --line: #e4e8ee;
+  --tint: #eaf6ff;
+  --field: #f6f8fb;
+  --ease: 0.2s ease;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; overflow-x: clip; }
+body {
+  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--white); color: var(--black); line-height: 1.6; overflow-x: clip;
+}
+a { color: var(--sky-ink); }
+:focus-visible { outline: 3px solid var(--sky); outline-offset: 2px; }
 
-  .stage { aspect-ratio:2 / 1; border-radius:10px; overflow:hidden; border:1px solid var(--line);
-    background:conic-gradient(#232b38 25%, #1a212c 0 50%, #232b38 0 75%, #1a212c 0) 0 0 / 24px 24px; }
-  .stage.lightbg { background:conic-gradient(#e9edf2 25%, #d6dce4 0 50%, #e9edf2 0 75%, #d6dce4 0) 0 0 / 24px 24px; }
-  iframe { width:100%; height:100%; border:0; display:block; background:transparent; }
-  .hint { margin-top:10px; font-size:13px; color:var(--dim); display:flex; justify-content:space-between; gap:12px; align-items:center; }
-  .btn.small { padding:6px 12px; font-size:13px; white-space:nowrap; flex:none; }
+/* ============================================
+   HERO
+   ============================================ */
+.hero { position: relative; background: var(--black); color: var(--white); overflow: hidden; }
+.hero::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
+  background-size: 48px 48px;
+  -webkit-mask-image: linear-gradient(to bottom, #000 20%, transparent);
+          mask-image: linear-gradient(to bottom, #000 20%, transparent);
+}
+.hero::after {   /* sky / green / orange weather stripe */
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 6px;
+  background: linear-gradient(90deg, var(--sky) 0 34%, var(--green) 34% 67%, var(--orange) 67%);
+}
+.hero-inner {
+  position: relative; max-width: 1100px; margin: 0 auto; padding: 4rem 1.5rem 3rem;
+  display: flex; align-items: center; justify-content: space-between; gap: 2rem;
+}
+.eyebrow { font-size: .78rem; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--sky); margin-bottom: .9rem; }
+.title { font-family: 'Space Grotesk', sans-serif; font-size: clamp(2.25rem, 6vw, 4.25rem); font-weight: 700; line-height: 1.05; letter-spacing: -0.03em; }
+.title-sub { color: var(--sky); }
+.subtitle { margin-top: 1rem; max-width: 56ch; color: #b4bac4; }
+.mascot { flex: 0 0 auto; width: clamp(96px, 16vw, 168px); height: auto; animation: bob 4.5s ease-in-out infinite; filter: drop-shadow(0 10px 24px rgba(79,180,245,.35)); }
 
-  .live { display:grid; gap:8px; }
-  .live .big { font-size:28px; font-weight:700; font-variant-numeric:tabular-nums; }
-  .live .meta { display:flex; justify-content:space-between; font-size:14px; color:var(--dim); font-variant-numeric:tabular-nums; }
-  .track { height:6px; border-radius:3px; background:var(--field); overflow:hidden; }
-  #fill { height:100%; width:0; background:var(--accent); transition:width 1s linear; }
+/* ============================================
+   STEP BAR (sticky)
+   ============================================ */
+.jump { position: sticky; top: 0; z-index: 50; background: rgba(255,255,255,0.92); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
+.jump-inner { max-width: 1100px; margin: 0 auto; padding: .7rem 1.5rem; display: flex; flex-wrap: wrap; gap: .4rem; }
+.chip { padding: .3rem .85rem; font-size: .8rem; font-weight: 600; color: var(--black); border: 1px solid var(--line); border-radius: 6px; text-decoration: none; transition: color var(--ease), border-color var(--ease), background var(--ease); }
+.chip:hover { color: var(--sky-ink); border-color: var(--sky); }
+.chip.active { background: var(--black); border-color: var(--black); color: var(--white); }
 
-  .linkrow { display:flex; gap:8px; }
-  .linkrow input { font-family:ui-monospace,Consolas,monospace; font-size:12.5px; }
-  ol { margin:14px 0 0; padding-left:20px; color:var(--dim); font-size:14px; }
-  ol b { color:var(--text); font-weight:600; }
-  .fine { color:var(--dim); font-size:13px; margin-top:24px; max-width:72ch; }
-  a { color:var(--accent); }
+/* ============================================
+   LAYOUT
+   ============================================ */
+.container { max-width: 1100px; margin: 0 auto; padding: 1.5rem 1.5rem 3.5rem; }
+#banner { display: none; margin: 0 0 1.25rem; padding: .85rem 1rem; border: 2px solid var(--black); border-left: 8px solid var(--orange); border-radius: 8px; background: #fff4ea; font-size: .88rem; }
+.layout { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 0 3rem; align-items: start; }
+.side { position: sticky; top: 4.25rem; }
+
+.step { padding: 1.75rem 0; border-bottom: 2px solid var(--black); scroll-margin-top: 4rem; --c: var(--sky); }
+.step:first-child { padding-top: 1rem; }
+.step.green { --c: var(--green); } .step.orange { --c: var(--orange); }
+.step-head { margin-bottom: 1.1rem; }
+.step-head::before { content: ''; display: block; width: 2.5rem; height: 6px; background: var(--c); margin-bottom: .9rem; }
+.step h2 { font-family: 'Space Grotesk', sans-serif; font-size: 1.55rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; }
+.step h2 span { color: var(--c); margin-right: .45rem; }
+.step-desc { margin-top: .35rem; color: var(--grey); font-size: .9rem; }
+.side .step:first-child { padding-top: 1rem; }
+.side .step:last-child { border-bottom: 0; }
+
+/* ============================================
+   CONTROLS
+   ============================================ */
+input[type=text], input[type=number], select {
+  width: 100%; padding: .7rem .85rem; font: 500 .95rem 'Poppins', sans-serif; color: var(--black);
+  background: var(--field); border: 2px solid var(--black); border-radius: 8px; transition: border-color var(--ease), background var(--ease);
+}
+select { width: auto; padding: .45rem .6rem; cursor: pointer; }
+input::placeholder { color: #8a93a1; }
+input:focus-visible, select:focus-visible { border-color: var(--sky); background: var(--white); outline: 3px solid rgba(79,180,245,.35); outline-offset: 0; }
+
+ul.results { list-style: none; margin-top: .6rem; border: 2px solid var(--black); border-radius: 8px; overflow: hidden; }
+ul.results:empty { display: none; }
+ul.results li { padding: .65rem .9rem; background: var(--white); border-top: 1px solid var(--line); cursor: pointer; transition: background var(--ease), box-shadow var(--ease); }
+ul.results li:first-child { border-top: 0; }
+ul.results li:hover, ul.results li:focus-visible { background: var(--tint); box-shadow: inset 4px 0 0 var(--sky); }
+ul.results li span { color: var(--grey); font-size: .85rem; }
+
+.status { margin-top: .7rem; font-size: .85rem; color: var(--grey); }
+.status.err { color: var(--orange-ink); font-weight: 500; }
+details { margin-top: .9rem; font-size: .88rem; color: var(--grey); }
+summary { cursor: pointer; font-weight: 500; color: var(--sky-ink); }
+.coords { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; margin-top: .75rem; }
+.coords .wide { grid-column: 1 / -1; }
+
+.btn { padding: .7rem 1.3rem; font: 700 .95rem/1 'Poppins', sans-serif; letter-spacing: .02em; color: var(--black); background: var(--sky); border: 2px solid var(--black); border-radius: 8px; cursor: pointer; transition: background var(--ease), transform var(--ease); }
+.btn:hover:not(:disabled) { background: #7cc9fa; }
+.btn:disabled { opacity: .4; cursor: not-allowed; }
+.btn.ghost { background: var(--white); }
+.btn.ghost:hover:not(:disabled) { background: var(--tint); }
+.btn.small { padding: .45rem .8rem; font-size: .78rem; white-space: nowrap; flex: none; }
+.btn.cta { background: var(--orange); }
+.btn.cta:hover:not(:disabled) { background: #ff9547; }
+.btn.cta:not(:disabled) { animation: pulse 2.6s ease-out infinite; }
+
+.opt { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin: .7rem 0; font-weight: 500; font-size: .95rem; }
+.seg { display: inline-flex; border: 2px solid var(--black); border-radius: 8px; overflow: hidden; }
+.seg button { padding: .5rem 1.15rem; border: 0; background: var(--white); color: var(--black); font: 600 .9rem 'Poppins', sans-serif; cursor: pointer; transition: background var(--ease), color var(--ease); }
+.seg button + button { border-left: 2px solid var(--black); }
+.seg button:hover { background: var(--tint); }
+.seg button.on { background: var(--black); color: var(--white); }
+.check { display: flex; align-items: center; gap: .7rem; margin: .55rem 0; font-size: .95rem; font-weight: 500; cursor: pointer; }
+.check input { width: 1.15rem; height: 1.15rem; accent-color: var(--green); flex: none; }
+.group-title { margin: 1.2rem 0 .2rem; font-size: .72rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--grey); }
+.note { margin-top: .8rem; font-size: .82rem; color: var(--grey); }
+
+/* ============================================
+   PREVIEW, LINK, TIMER
+   ============================================ */
+.stage { aspect-ratio: 2 / 1; border: 2px solid var(--black); border-radius: 12px; overflow: hidden;
+  background: conic-gradient(#273244 25%, #1d2634 0 50%, #273244 0 75%, #1d2634 0) 0 0 / 24px 24px; }
+.stage.lightbg { background: conic-gradient(#f1f4f8 25%, #dde3ec 0 50%, #f1f4f8 0 75%, #dde3ec 0) 0 0 / 24px 24px; }
+.stage { position: relative; }
+iframe { position: absolute; left: 0; top: 0; width: 600px; height: 300px; border: 0; display: block; background: transparent; transform-origin: 0 0; }
+.hint { margin-top: .75rem; font-size: .8rem; color: var(--grey); display: flex; justify-content: space-between; gap: 1rem; align-items: center; }
+.linkrow { display: flex; gap: .6rem; }
+.linkrow input { font-family: ui-monospace, Consolas, monospace; font-size: .8rem; }
+ol.how { margin: 1rem 0 0; padding-left: 1.2rem; color: var(--grey); font-size: .88rem; }
+ol.how li { margin: .15rem 0; }
+ol.how b { color: var(--black); }
+
+.live { display: grid; gap: .6rem; }
+.live .big { font: 700 2.4rem/1 'Space Grotesk', sans-serif; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.live .meta { display: flex; justify-content: space-between; gap: 1rem; font-size: .85rem; color: var(--grey); font-variant-numeric: tabular-nums; }
+.track { height: 10px; border-radius: 5px; background: var(--line); overflow: hidden; border: 1px solid var(--black); }
+#fill { height: 100%; width: 0; background: linear-gradient(90deg, var(--sky), var(--green)); transition: width 1s linear; }
+
+/* ============================================
+   FOOTER
+   ============================================ */
+.footer { position: relative; background: var(--black); color: #b4bac4; }
+.footer::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 6px; background: linear-gradient(90deg, var(--sky) 0 34%, var(--green) 34% 67%, var(--orange) 67%); }
+.footer-inner { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; font-size: .85rem; }
+.footer-inner p { max-width: 68ch; }
+.footer strong { color: var(--white); }
+.footer-link { display: inline-flex; align-items: center; gap: .5rem; padding: .5rem 1.1rem; border: 1px solid #333; border-radius: 6px; color: var(--white); text-decoration: none; transition: background var(--ease), border-color var(--ease); }
+.footer-link:hover { background: var(--sky); border-color: var(--sky); color: var(--black); }
+
+/* ============================================
+   MOTION
+   ============================================ */
+@keyframes reveal { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@keyframes bob { 50% { transform: translateY(-8px); } }
+@keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(255,122,26,.5); } 70% { box-shadow: 0 0 0 12px rgba(255,122,26,0); } 100% { box-shadow: 0 0 0 0 rgba(255,122,26,0); } }
+.hero-inner { animation: reveal .7s ease backwards; }
+.step, .side { animation: reveal .6s ease backwards; }
+.step:nth-child(2) { animation-delay: .08s; } .step:nth-child(3) { animation-delay: .14s; } .step:nth-child(4) { animation-delay: .2s; }
+.side { animation-delay: .1s; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } *, *::before, *::after { animation: none !important; transition: none !important; } }
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+@media (max-width: 900px) {
+  .layout { grid-template-columns: 1fr; }
+  .side { position: static; margin-top: .5rem; }
+  .side .step:first-child { border-top: 0; }
+}
+@media (max-width: 760px) {
+  .hero-inner { padding: 3rem 1.25rem 2.25rem; flex-direction: column-reverse; align-items: flex-start; gap: 1.25rem; }
+  .mascot { width: 84px; }
+  .jump { position: static; }
+  .jump-inner { padding: .7rem 1.25rem; }
+  .container { padding: 1rem 1.25rem 2.5rem; }
+  .opt { flex-wrap: wrap; }
+  .linkrow { flex-direction: column; }
+  .linkrow .btn { width: 100%; }
+  .hint { flex-direction: column; align-items: flex-start; }
+  .footer-inner { padding: 1.75rem 1.25rem; }
+}
 </style>
 </head>
 <body>
-<main>
-  <h1>Stream weather overlay</h1>
-  <p class="lead">Pick a city, drag the temperature where you want it, and paste the link into an OBS browser source. The overlay shows only the numbers, with no background.</p>
+<header class="hero">
+  <div class="hero-inner">
+    <div>
+      <p class="eyebrow">Free &middot; No account &middot; Transparent</p>
+      <h1 class="title"><span class="title-main">Stream Weather</span> <span class="title-sub">Overlay</span></h1>
+      <p class="subtitle">Pick a city, drag the temperature where you want it, and paste one link into an OBS browser source. Only the numbers and icons show on stream.</p>
+    </div>
+    <img class="mascot" src="favicon.svg" alt="" width="168" height="168">
+  </div>
+</header>
+
+<nav class="jump" aria-label="Setup steps">
+  <div class="jump-inner">
+    <a class="chip active" href="#step-city">1 City</a>
+    <a class="chip" href="#step-look">2 Look</a>
+    <a class="chip" href="#step-extras">3 Extras</a>
+    <a class="chip" href="#step-preview">4 Preview</a>
+    <a class="chip" href="#step-link">5 Your link</a>
+  </div>
+</nav>
+
+<main class="container">
   <div id="banner" role="alert"></div>
 
-  <div class="grid">
-    <div class="col">
-      <section>
-        <h2>City</h2>
+  <div class="layout">
+    <div class="steps">
+      <section class="step" id="step-city">
+        <div class="step-head"><h2><span>01</span>City</h2><p class="step-desc">Search for the place whose weather you want to show.</p></div>
         <input id="search" type="text" placeholder="Search for a city" autocomplete="off" aria-label="City">
-        <ul id="results"></ul>
+        <ul class="results" id="results"></ul>
         <div class="status" id="chosen">No city selected yet.</div>
         <details>
           <summary>Search not working? Enter coordinates instead</summary>
@@ -140,8 +298,8 @@
         </details>
       </section>
 
-      <section>
-        <h2>Look</h2>
+      <section class="step green" id="step-look">
+        <div class="step-head"><h2><span>02</span>Look</h2><p class="step-desc">Units, colours and how the overlay behaves.</p></div>
         <div class="opt"><span>Temperature unit</span>
           <div class="seg" role="group" aria-label="Temperature unit"><button id="btnC" type="button" class="on">°C</button><button id="btnF" type="button">°F</button></div>
         </div>
@@ -152,56 +310,59 @@
         <label class="check"><input id="optAnim" type="checkbox" checked> Animations</label>
         <label class="check"><input id="optLabel" type="checkbox"> Show city name under the number</label>
         <label class="check"><input id="optTimer" type="checkbox"> Show update countdown on stream</label>
-        <div class="opt" style="margin-bottom:0"><span>Update every</span>
+        <div class="opt"><span>Update every</span>
           <select id="optMin" aria-label="Update interval"><option value="5">5 min</option><option value="10" selected>10 min</option><option value="15">15 min</option><option value="30">30 min</option><option value="60">60 min</option></select>
         </div>
-      </section>
-
-      <section>
-        <h2>Extras</h2>
-        <label class="check"><input id="optWind" type="checkbox"> Wind arrow and speed</label>
-        <label class="check"><input id="optWaves" type="checkbox"> Wave height</label>
-        <label class="check"><input id="optTide" type="checkbox"> Tide (rising or falling, next high or low)</label>
-        <div class="status" style="margin-top:6px">Wave and tide data only exists near coasts and is a coarse model estimate. Inland spots show "No sea data".</div>
-      </section>
-
-      <section>
-        <h2>Update timer</h2>
+        <p class="group-title">Live update timer</p>
         <div class="live">
           <div class="big" id="liveTemp">--</div>
           <div class="track"><div id="fill"></div></div>
           <div class="meta"><span id="liveLast">Waiting for first reading</span><span id="liveNext"></span></div>
         </div>
       </section>
+
+      <section class="step orange" id="step-extras">
+        <div class="step-head"><h2><span>03</span>Extras</h2><p class="step-desc">Optional extras. All off by default.</p></div>
+        <label class="check"><input id="optWind" type="checkbox"> Wind arrow and speed</label>
+        <label class="check"><input id="optWaves" type="checkbox"> Wave height</label>
+        <label class="check"><input id="optTide" type="checkbox"> Tide (rising or falling, next high or low)</label>
+        <p class="note">Wave and tide data only exists near coasts and is a coarse model estimate. Inland spots show "No sea data".</p>
+      </section>
     </div>
 
-    <div class="col">
-      <section>
-        <h2>Preview</h2>
-        <div class="opt" style="margin:0 0 10px"><span>Preview weather</span>
+    <aside class="side">
+      <section class="step" id="step-preview">
+        <div class="step-head"><h2><span>04</span>Preview</h2><p class="step-desc">Drag the number to position it.</p></div>
+        <div class="opt" style="margin-top:0"><span>Preview weather</span>
           <select id="optDemo" aria-label="Preview weather"><option value="live">Live data</option><option value="sun">Sunny</option><option value="night">Clear night</option><option value="partly">Partly cloudy</option><option value="cloud">Cloudy</option><option value="fog">Foggy</option><option value="rain">Rainy</option><option value="snow">Snowy</option><option value="storm">Stormy</option></select>
         </div>
         <div class="stage" id="stage"><iframe id="frame" title="Overlay preview"></iframe></div>
-        <div class="hint"><span>Drag the number to position it. Preview weather is for testing only and isn't saved in your link.</span><button id="resetPos" type="button" class="btn ghost small">Reset position</button></div>
+        <div class="hint"><span>Preview weather is for testing and isn't saved in your link.</span><button id="resetPos" type="button" class="btn ghost small">Reset position</button></div>
       </section>
 
-      <section>
-        <h2>Your link</h2>
+      <section class="step green" id="step-link">
+        <div class="step-head"><h2><span>05</span>Your link</h2><p class="step-desc">Copy this into OBS.</p></div>
         <div class="linkrow">
           <input id="link" type="text" readonly aria-label="Overlay link" placeholder="Choose a city to create your link">
-          <button id="copy" class="btn" type="button" disabled>Copy</button>
+          <button id="copy" class="btn cta" type="button" disabled>Copy</button>
         </div>
-        <ol>
-          <li>In OBS, add a <b>Browser</b> source.</li>
+        <ol class="how">
+          <li>In streaming app, add a <b>Browser</b> source.</li>
           <li>Paste your link into <b>URL</b>.</li>
           <li>Set width <b>600</b> and height <b>300</b>. This matches the preview, so the position carries over.</li>
         </ol>
+        <p class="note">Your city and coordinates are stored in the link itself, so anyone who sees the link can see the location. Choose a larger nearby city if that matters to you.</p>
       </section>
-    </div>
+    </aside>
   </div>
-
-  <p class="fine">Your city and coordinates are stored in the link itself, so anyone who sees the link can see the location. Choose a larger nearby city if that matters to you. Weather data from <a href="https://open-meteo.com/">Open-Meteo</a>, free for non-commercial use. Wave and tide data uses Open-Meteo's marine models (including DWD), which request attribution.</p>
 </main>
+
+<footer class="footer">
+  <div class="footer-inner">
+    <p><strong>Stream Weather Overlay.</strong> Weather data from Open-Meteo. Wave and tide data uses Open-Meteo's marine models (including DWD), which request attribution.</p>
+    <a class="footer-link" href="https://open-meteo.com/" rel="noopener">open-meteo.com &rarr;</a>
+  </div>
+</footer>
 
 <script>
 const $ = id => document.getElementById(id);
@@ -329,68 +490,24 @@ fetch("https://api.open-meteo.com/v1/forecast?latitude=0&longitude=0&current=tem
   });
 
 reload();
+
+/* sticky step bar: highlight the section being read */
+(function () {
+  const chips = [...document.querySelectorAll(".chip")];
+  if (!("IntersectionObserver" in window)) return;
+  const io = new IntersectionObserver(es => es.forEach(e => {
+    if (e.isIntersecting) chips.forEach(c => c.classList.toggle("active", c.getAttribute("href") === "#" + e.target.id));
+  }), { rootMargin: "-25% 0px -65% 0px" });
+  chips.forEach(c => { const t = document.querySelector(c.getAttribute("href")); if (t) io.observe(t); });
+})();
+
+/* keep the preview at true OBS size (600x300) and scale it to fit the box */
+(function () {
+  const stage = document.getElementById("stage"), frame = document.getElementById("frame");
+  const fit = () => { frame.style.transform = "scale(" + (stage.clientWidth / 600) + ")"; };
+  fit();
+  if ("ResizeObserver" in window) new ResizeObserver(fit).observe(stage); else addEventListener("resize", fit);
+})();
 </script>
-
-  <!-- Sponsor Button  -->
-  <!-- TRIGGER BUTTON -->
-<button id="support-trigger" style="background:#2c5c64;color:#fff;border:none;padding:14px 28px;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;margin:40px;left:70%;top:-30px;position:absolute;z-index:9999;">💸 TIP</button>
-
-<!-- OVERLAY -->
-<div id="afz-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.78);backdrop-filter:blur(6px);z-index:99999;align-items:center;justify-content:center;padding:16px;">
-  <div id="afz-modal" style="position:relative;width:100%;max-width:700px;max-height:90vh;border-radius:18px;overflow-y:auto;box-shadow:0 32px 80px rgba(0,0,0,0.7);background:#0a0a0f;">
-    <button id="afz-close" style="position:sticky;top:12px;float:right;margin:12px 12px 0 0;width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);color:#fff;font-size:16px;cursor:pointer;z-index:10;">✕</button>
-    <div id="afz-content" style="padding:0;"></div>
-  </div>
-</div>
-
-<script>
-  var loaded = false;
-
-  document.getElementById('support-trigger').addEventListener('click', openWidget);
-  document.getElementById('afz-close').addEventListener('click', closeWidget);
-  document.getElementById('afz-overlay').addEventListener('click', function(e) {
-    if (e.target === this) closeWidget();
-  });
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') closeWidget();
-  });
-
-  function openWidget() {
-    var o = document.getElementById('afz-overlay');
-    o.style.display = 'flex';
-    document.body.style.overflow = 'hidden';
-    if (!loaded) fetchSupport();
-  }
-
-  function closeWidget() {
-    document.getElementById('afz-overlay').style.display = 'none';
-    document.body.style.overflow = '';
-  }
-
-  function showFallback() {
-    document.getElementById('afz-content').innerHTML = '<div style="font-family:sans-serif;padding:48px 32px;text-align:center;color:#f0eee8;background:#0a0a0f;border-radius:18px;"><p style="color:#ff4c29;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:8px;">Support the work</p><h2 style="font-size:42px;margin:0 0 8px;color:#f0eee8;">FUEL THE FIRE</h2><p style="color:#7a7a8a;margin-bottom:36px;font-size:14px;">Pick your move below.</p><div style="display:flex;flex-direction:column;gap:14px;max-width:380px;margin:0 auto;"><a href="https://streamelements.com/hewfunkingknewit/tip" target="_blank" rel="noopener" style="background:#ff4c29;color:#fff;padding:18px 24px;border-radius:12px;text-decoration:none;font-weight:700;font-size:16px;display:block;">💸 Send a Tip</a><a href="https://shop.artechfuz3d.xyz/products/sponsor" target="_blank" rel="noopener" style="background:#1a1a24;color:#f0eee8;border:1px solid rgba(255,255,255,0.1);padding:18px 24px;border-radius:12px;text-decoration:none;font-weight:700;font-size:16px;display:block;">🚀 Become a Sponsor</a></div></div>';
-    loaded = true;
-  }
-
-  function fetchSupport() {
-    fetch('https://artechfuz3d.github.io/support/')
-      .then(function(r) {
-        if (!r.ok) throw new Error('bad response');
-        return r.text();
-      })
-      .then(function(html) {
-        var parser = new DOMParser();
-        var doc = parser.parseFromString(html, 'text/html');
-        var styles = Array.from(doc.querySelectorAll('style')).map(function(el) { return el.outerHTML; }).join('\n');
-        var body = doc.body.innerHTML;
-        document.getElementById('afz-content').innerHTML = styles + body;
-        loaded = true;
-      })
-      .catch(function() {
-        showFallback();
-      });
-  }
-</script>
-
 </body>
 </html>
