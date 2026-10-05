@@ -526,15 +526,6 @@ style.textContent = `
         z-index: 0;
     }
     
-    .link-card {
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .link-card > * {
-        position: relative;
-        z-index: 1;
-    }
     
     .ripple-effect {
         position: absolute;
