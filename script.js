@@ -1,28 +1,36 @@
-// Particle background only. Nothing here touches the link cards.
+// Hero particle network. Self-contained; touches nothing else on the page.
 class ParticleSystem {
-    constructor(canvasId) {
-        this.canvas = document.getElementById(canvasId);
-        if (!this.canvas) return;
-        this.ctx = this.canvas.getContext('2d');
-        this.count = 100;
-        this.linkDistance = 150;
-        this.mouse = { x: null, y: null, radius: 150 };
+    constructor(canvas) {
+        this.canvas = canvas;
+        this.host = canvas.parentElement;
+        this.ctx = canvas.getContext('2d');
+        this.linkDistance = 130;
+        this.mouse = { x: null, y: null, radius: 140 };
+        this.visible = true;
+
         this.resize();
-        window.addEventListener('resize', () => this.resize());
-        window.addEventListener('mousemove', (e) => { this.mouse.x = e.clientX; this.mouse.y = e.clientY; });
-        window.addEventListener('mouseout', () => { this.mouse.x = this.mouse.y = null; });
+        new ResizeObserver(() => this.resize()).observe(this.host);
+        new IntersectionObserver(([e]) => { this.visible = e.isIntersecting; }).observe(this.host);
+
+        this.host.addEventListener('mousemove', (e) => {
+            const r = this.canvas.getBoundingClientRect();
+            this.mouse.x = e.clientX - r.left;
+            this.mouse.y = e.clientY - r.top;
+        });
+        this.host.addEventListener('mouseleave', () => { this.mouse.x = this.mouse.y = null; });
+
         this.animate();
     }
 
     resize() {
-        this.canvas.width = window.innerWidth;
-        this.canvas.height = window.innerHeight;
-        this.particles = Array.from({ length: this.count }, () => ({
-            x: Math.random() * this.canvas.width,
-            y: Math.random() * this.canvas.height,
-            vx: (Math.random() - 0.5) * 0.5,
-            vy: (Math.random() - 0.5) * 0.5,
-            r: Math.random() * 2 + 1
+        const w = this.host.offsetWidth, h = this.host.offsetHeight;
+        this.canvas.width = w;
+        this.canvas.height = h;
+        const count = Math.max(30, Math.min(90, Math.round((w * h) / 14000)));
+        this.particles = Array.from({ length: count }, () => ({
+            x: Math.random() * w, y: Math.random() * h,
+            vx: (Math.random() - 0.5) * 0.5, vy: (Math.random() - 0.5) * 0.5,
+            r: Math.random() * 1.8 + 1
         }));
     }
 
@@ -55,19 +63,20 @@ class ParticleSystem {
     draw() {
         const ctx = this.ctx, ps = this.particles;
         ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        ctx.lineWidth = 1;
         for (let i = 0; i < ps.length; i++) {
             for (let j = i + 1; j < ps.length; j++) {
                 const d = Math.hypot(ps[i].x - ps[j].x, ps[i].y - ps[j].y);
                 if (d < this.linkDistance) {
                     ctx.beginPath();
-                    ctx.strokeStyle = `rgba(102, 126, 234, ${(1 - d / this.linkDistance) * 0.3})`;
+                    ctx.strokeStyle = `rgba(255, 90, 31, ${(1 - d / this.linkDistance) * 0.35})`;
                     ctx.moveTo(ps[i].x, ps[i].y);
                     ctx.lineTo(ps[j].x, ps[j].y);
                     ctx.stroke();
                 }
             }
         }
-        ctx.fillStyle = 'rgba(102, 126, 234, 0.8)';
+        ctx.fillStyle = 'rgba(255, 90, 31, 0.85)';
         for (const p of ps) {
             ctx.beginPath();
             ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
@@ -76,14 +85,17 @@ class ParticleSystem {
     }
 
     animate() {
-        this.update();
-        this.draw();
+        if (this.visible) {
+            this.update();
+            this.draw();
+        }
         requestAnimationFrame(() => this.animate());
     }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-        new ParticleSystem('particleCanvas');
+    const canvas = document.getElementById('particleCanvas');
+    if (canvas && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        new ParticleSystem(canvas);
     }
 });
