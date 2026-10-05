@@ -628,5 +628,65 @@
 
     <!-- Scripts -->
     <script src="script.js" defer></script>
+     <!-- Sponsor Button  -->
+  <!-- TRIGGER BUTTON -->
+<button id="support-trigger" style="background:#2c5c64;color:#fff;border:none;padding:14px 28px;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;margin:40px;left:70%;top:-30px;position:absolute;z-index:9999;">💸 TIP</button>
+
+<!-- OVERLAY -->
+<div id="afz-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.78);backdrop-filter:blur(6px);z-index:99999;align-items:center;justify-content:center;padding:16px;">
+  <div id="afz-modal" style="position:relative;width:100%;max-width:700px;max-height:90vh;border-radius:18px;overflow-y:auto;box-shadow:0 32px 80px rgba(0,0,0,0.7);background:#0a0a0f;">
+    <button id="afz-close" style="position:sticky;top:12px;float:right;margin:12px 12px 0 0;width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);color:#fff;font-size:16px;cursor:pointer;z-index:10;">✕</button>
+    <div id="afz-content" style="padding:0;"></div>
+  </div>
+</div>
+
+<script>
+  var loaded = false;
+
+  document.getElementById('support-trigger').addEventListener('click', openWidget);
+  document.getElementById('afz-close').addEventListener('click', closeWidget);
+  document.getElementById('afz-overlay').addEventListener('click', function(e) {
+    if (e.target === this) closeWidget();
+  });
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeWidget();
+  });
+
+  function openWidget() {
+    var o = document.getElementById('afz-overlay');
+    o.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+    if (!loaded) fetchSupport();
+  }
+
+  function closeWidget() {
+    document.getElementById('afz-overlay').style.display = 'none';
+    document.body.style.overflow = '';
+  }
+
+  function showFallback() {
+    document.getElementById('afz-content').innerHTML = '<div style="font-family:sans-serif;padding:48px 32px;text-align:center;color:#f0eee8;background:#0a0a0f;border-radius:18px;"><p style="color:#ff4c29;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:8px;">Support the work</p><h2 style="font-size:42px;margin:0 0 8px;color:#f0eee8;">FUEL THE FIRE</h2><p style="color:#7a7a8a;margin-bottom:36px;font-size:14px;">Pick your move below.</p><div style="display:flex;flex-direction:column;gap:14px;max-width:380px;margin:0 auto;"><a href="https://streamelements.com/hewfunkingknewit/tip" target="_blank" rel="noopener" style="background:#ff4c29;color:#fff;padding:18px 24px;border-radius:12px;text-decoration:none;font-weight:700;font-size:16px;display:block;">💸 Send a Tip</a><a href="https://shop.artechfuz3d.xyz/products/sponsor" target="_blank" rel="noopener" style="background:#1a1a24;color:#f0eee8;border:1px solid rgba(255,255,255,0.1);padding:18px 24px;border-radius:12px;text-decoration:none;font-weight:700;font-size:16px;display:block;">🚀 Become a Sponsor</a></div></div>';
+    loaded = true;
+  }
+
+  function fetchSupport() {
+    fetch('https://artechfuz3d.github.io/support/')
+      .then(function(r) {
+        if (!r.ok) throw new Error('bad response');
+        return r.text();
+      })
+      .then(function(html) {
+        var parser = new DOMParser();
+        var doc = parser.parseFromString(html, 'text/html');
+        var styles = Array.from(doc.querySelectorAll('style')).map(function(el) { return el.outerHTML; }).join('\n');
+        var body = doc.body.innerHTML;
+        document.getElementById('afz-content').innerHTML = styles + body;
+        loaded = true;
+      })
+      .catch(function() {
+        showFallback();
+      });
+  }
+</script>
   </body>
 </html>
