@@ -99,3 +99,18 @@ document.addEventListener('DOMContentLoaded', () => {
         new ParticleSystem(canvas);
     }
 });
+
+// Highlight the jump-bar chip for the category currently in view.
+document.addEventListener('DOMContentLoaded', () => {
+    const chips = new Map([...document.querySelectorAll('.chip')].map(c => [c.getAttribute('href').slice(1), c]));
+    if (!chips.size) return;
+    const io = new IntersectionObserver((entries) => {
+        entries.forEach(e => {
+            if (!e.isIntersecting) return;
+            chips.forEach(c => c.classList.remove('active'));
+            const chip = chips.get(e.target.id);
+            if (chip) chip.classList.add('active');
+        });
+    }, { rootMargin: '-35% 0px -55% 0px' });
+    document.querySelectorAll('.category[id]').forEach(el => io.observe(el));
+});
