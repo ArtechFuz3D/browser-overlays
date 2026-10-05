@@ -58,9 +58,18 @@
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
+    <!-- Animated Background -->
+    <div class="background-animation"><canvas id="particleCanvas"></canvas></div>
+    <div class="gradient-orb orb-1"></div>
+    <div class="gradient-orb orb-2"></div>
+    <div class="gradient-orb orb-3"></div>
+
     <div class="container">
       <header class="hero">
-        <h1 class="title">Browser Overlays Studio</h1>
+        <h1 class="title">
+          <span class="title-main">Browser Overlays</span>
+          <span class="title-sub">Studio</span>
+        </h1>
         <p class="subtitle">
           Explore our curated collection of immersive overlay experiences
         </p>
@@ -69,8 +78,10 @@
       <nav class="menu" aria-label="Category navigation menu">
         <!-- Screensavers -->
         <section class="category">
-          <h2>Screensavers</h2>
+          <div class="category-header">
+            <h2>Screensavers</h2>
           <p class="category-description">Dynamic LEGO-inspired animations</p>
+          </div>
           <ul class="category-links">
             <li>
               <a href="screensaver/lego-01.html" class="link-card">
@@ -107,8 +118,10 @@
 
         <!-- Shaders -->
         <section class="category">
-          <h2>Shader Graphics</h2>
+          <div class="category-header">
+            <h2>Shader Graphics</h2>
           <p class="category-description">Stunning 2d/3d shaders</p>
+          </div>
           <ul class="category-links">
             <li>
               <a href="shaders/mandelbox-sweeper.html" class="link-card">
@@ -145,8 +158,10 @@
 
         <!-- Crawls -->
         <section class="category">
-          <h2>Crawls</h2>
+          <div class="category-header">
+            <h2>Crawls</h2>
           <p class="category-description">Crawl footer overlays</p>
+          </div>
           <ul class="category-links">
             <li>
               <a href="crawls/wiretickerstudio" class="link-card">
@@ -163,8 +178,10 @@
 
         <!-- Videos -->
         <section class="category">
-          <h2>Video Overlay</h2>
+          <div class="category-header">
+            <h2>Video Overlay</h2>
           <p class="category-description">Video overlays</p>
+          </div>
           <ul class="category-links">
             <li>
               <a href="video/3d-cube.html" class="link-card">
@@ -181,8 +198,10 @@
 
         <!-- Audio -->
         <section class="category">
-          <h2>Audio Overlays</h2>
+          <div class="category-header">
+            <h2>Audio Overlays</h2>
           <p class="category-description">Audio overlays</p>
+          </div>
           <ul class="category-links">
             <li>
               <a href="audio/music-redeem-player.html" class="link-card">
@@ -219,8 +238,10 @@
 
         <!-- Galleries -->
         <section class="category">
-          <h2>Galleries</h2>
+          <div class="category-header">
+            <h2>Galleries</h2>
           <p class="category-description">Stunning image showcases</p>
+          </div>
           <ul class="category-links">
             <li>
               <a href="gallery/images-01.html" class="link-card">
@@ -247,8 +268,10 @@
 
         <!-- Info Panels -->
         <section class="category">
-          <h2>Info Panels</h2>
+          <div class="category-header">
+            <h2>Info Panels</h2>
           <p class="category-description">Interactive information displays</p>
+          </div>
           <ul class="category-links">
             <li>
               <a href="infographics/weather/index.html" class="link-card">
@@ -275,8 +298,10 @@
 
         <!-- Drop Games -->
         <section class="category">
-          <h2>Drop Games</h2>
+          <div class="category-header">
+            <h2>Drop Games</h2>
           <p class="category-description">Interactive chat games based on the drop game style</p>
+          </div>
           <ul class="category-links">
             <li>
               <a href="dropgames/RippleDrop.html" class="link-card">
@@ -309,6 +334,8 @@
         </a>
       </footer>
     </div>
+
+    <script src="script.js" defer></script>
 
     <!-- Sponsor Button  -->
   <!-- TRIGGER BUTTON -->
