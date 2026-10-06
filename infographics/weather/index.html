@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Stream Weather Overlay: free cute weather for streaming</title>
-<meta name="description" content="Free, cute weather overlay for OBS and streaming. Pick a city, copy a link, and show live temperature, weather icons, wind, waves and tide. No account needed.">
-<meta name="keywords" content="Streaming weather overlay, stream weather widget, browser source weather, Twitch weather overlay, YouTube stream overlay, temperature overlay, transparent overlay, Open-Meteo">
+<title>Stream Weather Overlay: free cute weather for your stream</title>
+<meta name="description" content="Free, cute weather overlay for live streams. Pick a city, copy a link, and show live temperature, weather icons, wind, waves and tide on a transparent background. No account needed.">
+<meta name="keywords" content="stream weather overlay, weather widget for streamers, browser source weather, Twitch weather overlay, YouTube stream overlay, temperature overlay, transparent overlay, Open-Meteo">
 <meta name="author" content="artechfuz3d">
 <meta name="robots" content="index, follow, max-image-preview:large">
 <link rel="canonical" href="https://artechfuz3d.github.io/browser-overlays/infographics/weather/">
@@ -24,8 +24,8 @@
 <!-- Open Graph -->
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Stream Weather Overlay">
-<meta property="og:title" content="Stream Weather Overlay: free cute weather for streaming">
-<meta property="og:description" content="Free, cute weather overlay for OBS and streaming. Pick a city, copy a link, and show live temperature, weather icons, wind, waves and tide. No account needed.">
+<meta property="og:title" content="Stream Weather Overlay: free cute weather for your stream">
+<meta property="og:description" content="Free, cute weather overlay for live streams. Pick a city, copy a link, and show live temperature, weather icons, wind, waves and tide on a transparent background. No account needed.">
 <meta property="og:url" content="https://artechfuz3d.github.io/browser-overlays/infographics/weather/">
 <meta property="og:locale" content="en_US">
 <meta property="og:image" content="https://artechfuz3d.github.io/browser-overlays/infographics/weather/og-image.png">
@@ -37,8 +37,8 @@
 
 <!-- Twitter / X -->
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Stream Weather Overlay: free cute weather for streaming">
-<meta name="twitter:description" content="Free, cute weather overlay for streaming. Pick a city, copy a link, and show live temperature, weather icons, wind, waves and tide. No account needed.">
+<meta name="twitter:title" content="Stream Weather Overlay: free cute weather for your stream">
+<meta name="twitter:description" content="Free, cute weather overlay for live streams. Pick a city, copy a link, and show live temperature, weather icons, wind, waves and tide on a transparent background. No account needed.">
 <meta name="twitter:image" content="https://artechfuz3d.github.io/browser-overlays/infographics/weather/og-image.png">
 <meta name="twitter:image:alt" content="A smiling white cloud with pink cheeks next to a sun, beside the title Stream Weather Overlay">
 
@@ -49,7 +49,7 @@
   "@type": "WebApplication",
   "name": "Stream Weather Overlay",
   "url": "https://artechfuz3d.github.io/browser-overlays/infographics/weather/",
-  "description": "Free, cute weather overlay for OBS and streaming. Pick a city, copy a link, and show live temperature, weather icons, wind, waves and tide. No account needed.",
+  "description": "Free, cute weather overlay for live streams. Pick a city, copy a link, and show live temperature, weather icons, wind, waves and tide on a transparent background. No account needed.",
   "applicationCategory": "UtilitiesApplication",
   "operatingSystem": "Any",
   "browserRequirements": "Requires JavaScript",
@@ -86,6 +86,7 @@ body {
   background: var(--white); color: var(--black); line-height: 1.6; overflow-x: clip;
 }
 a { color: var(--sky-ink); }
+[hidden] { display: none !important; }
 :focus-visible { outline: 3px solid var(--sky); outline-offset: 2px; }
 
 /* ============================================
@@ -211,15 +212,41 @@ ol.how b { color: var(--black); }
 #fill { height: 100%; width: 0; background: linear-gradient(90deg, var(--sky), var(--green)); transition: width 1s linear; }
 
 /* ============================================
+   SUPPORT BUTTON + POPUP (markup and script unchanged, styled to the page)
+   ============================================ */
+#support-trigger { margin-left: auto; padding: .3rem .95rem; font: 700 .8rem 'Poppins', sans-serif; letter-spacing: .02em; color: var(--black); background: var(--orange); border: 2px solid var(--black); border-radius: 6px; cursor: pointer; white-space: nowrap; animation: pulse 2.6s ease-out infinite; transition: background var(--ease); }
+#support-trigger:hover { background: #ff9547; animation-play-state: paused; }
+
+#afz-overlay { display: none; position: fixed; inset: 0; z-index: 1000; padding: 16px; align-items: center; justify-content: center; background: rgba(10,10,10,.78); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+#afz-modal { position: relative; width: 100%; max-width: 700px; max-height: 90vh; overflow-y: auto; border-radius: 16px; background: #0a0a0f; box-shadow: 0 32px 80px rgba(0,0,0,.7); animation: reveal .35s ease backwards; }
+#afz-modal::before { content: ''; display: block; height: 6px; background: linear-gradient(90deg, var(--sky) 0 34%, var(--green) 34% 67%, var(--orange) 67%); }
+#afz-close { position: sticky; top: 12px; float: right; margin: 12px 12px 0 0; width: 34px; height: 34px; border-radius: 50%; background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.25); color: var(--white); font-size: 15px; cursor: pointer; z-index: 10; transition: background var(--ease); }
+#afz-close:hover { background: var(--orange); border-color: var(--orange); color: var(--black); }
+#afz-content { padding: 0; }
+
+/* built-in fallback card (scoped so a loaded support page is never restyled) */
+#afz-content > div[style*="text-align:center"][style*="#0a0a0f"] { font-family: 'Poppins', sans-serif !important; padding: 3rem 2rem 3.25rem !important; }
+#afz-content > div[style*="text-align:center"][style*="#0a0a0f"] > p:first-child { color: var(--sky) !important; font-weight: 600; letter-spacing: .14em !important; font-size: .78rem !important; }
+#afz-content > div[style*="text-align:center"][style*="#0a0a0f"] > h2 { font-family: 'Space Grotesk', sans-serif !important; font-size: clamp(2rem, 7vw, 2.9rem) !important; line-height: 1; letter-spacing: -0.02em; color: var(--white) !important; }
+#afz-content > div[style*="text-align:center"][style*="#0a0a0f"] > p:nth-of-type(2) { color: #b4bac4 !important; }
+#afz-content > div[style*="text-align:center"][style*="#0a0a0f"] a { border-radius: 8px !important; border: 2px solid var(--black) !important; color: var(--black) !important; font-family: 'Poppins', sans-serif; transition: background var(--ease); }
+#afz-content > div[style*="text-align:center"][style*="#0a0a0f"] a:first-child { background: var(--orange) !important; }
+#afz-content > div[style*="text-align:center"][style*="#0a0a0f"] a:first-child:hover { background: #ff9547 !important; }
+#afz-content > div[style*="text-align:center"][style*="#0a0a0f"] a:last-child { background: var(--sky) !important; }
+#afz-content > div[style*="text-align:center"][style*="#0a0a0f"] a:last-child:hover { background: #7cc9fa !important; }
+
+/* ============================================
    FOOTER
    ============================================ */
 .footer { position: relative; background: var(--black); color: #b4bac4; }
 .footer::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 6px; background: linear-gradient(90deg, var(--sky) 0 34%, var(--green) 34% 67%, var(--orange) 67%); }
-.footer-inner { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; font-size: .85rem; }
-.footer-inner p { max-width: 68ch; }
-.footer strong { color: var(--white); }
-.footer-link { display: inline-flex; align-items: center; gap: .5rem; padding: .5rem 1.1rem; border: 1px solid #333; border-radius: 6px; color: var(--white); text-decoration: none; transition: background var(--ease), border-color var(--ease); }
-.footer-link:hover { background: var(--sky); border-color: var(--sky); color: var(--black); }
+.footer-inner { max-width: 1100px; margin: 0 auto; padding: 1.1rem 1.5rem; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .35rem 1.5rem; font-size: .8rem; }
+.footer .built { font-weight: 500; color: var(--white); }
+.footer .built a { color: var(--sky); font-weight: 700; text-decoration: none; transition: color var(--ease); }
+.footer .built a:hover { color: var(--orange); }
+.footer .credit { font-size: .72rem; color: #8a93a1; }
+.footer .credit a { color: #b4bac4; text-decoration: none; border-bottom: 1px solid #333; transition: color var(--ease), border-color var(--ease); }
+.footer .credit a:hover { color: var(--sky); border-color: var(--sky); }
 
 /* ============================================
    MOTION
@@ -251,7 +278,7 @@ ol.how b { color: var(--black); }
   .linkrow { flex-direction: column; }
   .linkrow .btn { width: 100%; }
   .hint { flex-direction: column; align-items: flex-start; }
-  .footer-inner { padding: 1.75rem 1.25rem; }
+  .footer-inner { padding: 1rem 1.25rem; }
 }
 </style>
 </head>
@@ -261,7 +288,7 @@ ol.how b { color: var(--black); }
     <div>
       <p class="eyebrow">Free &middot; No account &middot; Transparent</p>
       <h1 class="title"><span class="title-main">Stream Weather</span> <span class="title-sub">Overlay</span></h1>
-      <p class="subtitle">Pick a city, drag the temperature where you want it, and paste one link into an OBS browser source. Only the numbers and icons show on stream.</p>
+      <p class="subtitle">Pick a city, drag the temperature where you want it, and paste one link into your streaming software's browser source. Only the numbers and icons show on stream.</p>
     </div>
     <img class="mascot" src="favicon.svg" alt="" width="168" height="168">
   </div>
@@ -274,6 +301,8 @@ ol.how b { color: var(--black); }
     <a class="chip" href="#step-extras">3 Extras</a>
     <a class="chip" href="#step-preview">4 Preview</a>
     <a class="chip" href="#step-link">5 Your link</a>
+    <!-- TRIGGER BUTTON -->
+    <button id="support-trigger">💸 SUPPORT</button>
   </div>
 </nav>
 
@@ -341,13 +370,13 @@ ol.how b { color: var(--black); }
       </section>
 
       <section class="step green" id="step-link">
-        <div class="step-head"><h2><span>05</span>Your link</h2><p class="step-desc">Copy this into OBS.</p></div>
+        <div class="step-head"><h2><span>05</span>Your link</h2><p class="step-desc">Copy this into your streaming software.</p></div>
         <div class="linkrow">
           <input id="link" type="text" readonly aria-label="Overlay link" placeholder="Choose a city to create your link">
           <button id="copy" class="btn cta" type="button" disabled>Copy</button>
         </div>
         <ol class="how">
-          <li>In streaming app, add a <b>Browser</b> source.</li>
+          <li>In your streaming software, add a <b>Browser</b> (web page) source.</li>
           <li>Paste your link into <b>URL</b>.</li>
           <li>Set width <b>600</b> and height <b>300</b>. This matches the preview, so the position carries over.</li>
         </ol>
@@ -359,10 +388,11 @@ ol.how b { color: var(--black); }
 
 <footer class="footer">
   <div class="footer-inner">
-    <p><strong>Stream Weather Overlay.</strong> Weather data from Open-Meteo. Wave and tide data uses Open-Meteo's marine models (including DWD), which request attribution.</p>
-    <a class="footer-link" href="https://open-meteo.com/" rel="noopener">open-meteo.com &rarr;</a>
+    <p class="built">Built by <a href="https://artechfuz3d.github.io/" rel="noopener">ArtechFuz3D</a></p>
+    <p class="credit">Weather data: <a href="https://open-meteo.com/" rel="noopener">Open-Meteo</a>&middot; marine data incl. DWD</p>
   </div>
 </footer>
+
 
 <script>
 const $ = id => document.getElementById(id);
@@ -501,22 +531,21 @@ reload();
   chips.forEach(c => { const t = document.querySelector(c.getAttribute("href")); if (t) io.observe(t); });
 })();
 
-/* keep the preview at true OBS size (600x300) and scale it to fit the box */
+/* keep the preview at its true size (600x300) and scale it to fit the box */
 (function () {
   const stage = document.getElementById("stage"), frame = document.getElementById("frame");
   const fit = () => { frame.style.transform = "scale(" + (stage.clientWidth / 600) + ")"; };
   fit();
   if ("ResizeObserver" in window) new ResizeObserver(fit).observe(stage); else addEventListener("resize", fit);
 })();
+
 </script>
-<!-- TRIGGER BUTTON -->
-<button id="support-trigger" style="background:#f1750f;color:#fff;border:none;padding:14px 28px;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;margin:40px;left:70%;top:-30px;position:absolute;z-index:9999;">💸 TIP</button>
 
 <!-- OVERLAY -->
-<div id="afz-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.78);backdrop-filter:blur(6px);z-index:99999;align-items:center;justify-content:center;padding:16px;">
-  <div id="afz-modal" style="position:relative;width:100%;max-width:700px;max-height:90vh;border-radius:18px;overflow-y:auto;box-shadow:0 32px 80px rgba(0,0,0,0.7);background:#0a0a0f;">
-    <button id="afz-close" style="position:sticky;top:12px;float:right;margin:12px 12px 0 0;width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);color:#fff;font-size:16px;cursor:pointer;z-index:10;">✕</button>
-    <div id="afz-content" style="padding:0;"></div>
+<div id="afz-overlay">
+  <div id="afz-modal">
+    <button id="afz-close">✕</button>
+    <div id="afz-content"></div>
   </div>
 </div>
 
@@ -568,7 +597,5 @@ reload();
       });
   }
 </script>
-
-
 </body>
 </html>
