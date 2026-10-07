@@ -29,19 +29,20 @@
                  0 4px 10px rgba(0,0,0,.28); }
 
   #main { display:flex; align-items:center; gap:4px; }
-  #icon { width:104px; height:104px; flex:none; filter:drop-shadow(0 3px 5px rgba(0,0,0,.28)); }
+  #icon { width:calc(var(--fs-temp, 92px) * 1.13); height:calc(var(--fs-temp, 92px) * 1.13); flex:none; filter:drop-shadow(0 3px 5px rgba(0,0,0,.28)); }
   #icon svg { width:100%; height:100%; overflow:visible; }
   body.noicon #icon { display:none; }
-  #temp { --o:3.5px; font-size:92px; font-weight:600; line-height:1; letter-spacing:-1px; font-variant-numeric:tabular-nums; white-space:nowrap; }
-  #temp small { font-size:42px; font-weight:500; letter-spacing:0; margin-left:2px; }
+  #temp { --o:3.5px; font-size:var(--fs-temp, 92px); font-weight:600; line-height:1; letter-spacing:-1px; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  #temp small { font-size:var(--fs-unit, 42px); font-weight:500; letter-spacing:0; margin-left:2px; }
   #temp.pop { animation:pop .6s cubic-bezier(.3,1.6,.5,1); }
 
   #extras { display:flex; flex-wrap:wrap; gap:6px 18px; margin-top:8px; }
-  .chip { display:none; align-items:center; gap:6px; font-size:21px; font-weight:500; white-space:nowrap; }
-  .chip svg { width:26px; height:26px; flex:none; overflow:visible; filter:drop-shadow(0 2px 2px rgba(0,0,0,.25)); }
+  .chip { display:none; align-items:center; gap:.3em; font-weight:500; white-space:nowrap; }
+  #wind { font-size:var(--fs-wind, 21px); } #waves { font-size:var(--fs-waves, 21px); } #tide { font-size:var(--fs-tide, 21px); }
+  .chip svg { width:1.25em; height:1.25em; flex:none; overflow:visible; filter:drop-shadow(0 2px 2px rgba(0,0,0,.25)); }
   .rot { display:inline-flex; transition:transform 1.2s cubic-bezier(.3,1.5,.5,1); }
   #label, #timer, #note, #sea { display:none; margin-top:6px; font-weight:500; white-space:nowrap; }
-  #label { font-size:22px; } #timer { font-size:16px; font-variant-numeric:tabular-nums; }
+  #label { font-size:var(--fs-label, 22px); } #timer { font-size:var(--fs-timer, 16px); font-variant-numeric:tabular-nums; }
   #note, #sea { font-size:16px; white-space:normal; max-width:320px; }
   body.label #label, body.timer #timer { display:block; }
 
@@ -103,7 +104,9 @@
    overlay.html?lat=-25.75&lon=28.23&unit=C&color=light
    color=light|dark     x=0-100&y=0-100 (position)     minutes=5-60
    icon=0 (hide weather icon)   wind=1   waves=1   tide=1   anim=0 (no animation)
-   label=1&name=Pretoria   timer=1   demo=sun|night|partly|cloud|fog|rain|snow|storm (fake data for testing) */
+   label=1&name=Pretoria   timer=1
+   font sizes in px: fsTemp fsUnit fsLabel fsWind fsWaves fsTide fsTimer (8-400)
+   demo=sun|night|partly|cloud|fog|rain|snow|storm (fake data for testing) */
 const $ = id => document.getElementById(id);
 const q = new URLSearchParams(location.search);
 const framed = window.parent !== window;
@@ -115,6 +118,16 @@ const unit = (q.get("unit") || "C").toUpperCase() === "F" ? "F" : "C";
 const minutes = Math.min(60, Math.max(5, parseInt(q.get("minutes"), 10) || 10));
 const RETRY_MS = 60000;
 const flags = { icon: q.get("icon") !== "0", wind: q.get("wind") === "1", waves: q.get("waves") === "1", tide: q.get("tide") === "1" };
+
+/* per-element font sizes (px), from the link or live from the generator preview */
+const FS_KEYS = ["temp", "unit", "label", "wind", "waves", "tide", "timer"];
+function setFs(k, v) {
+  v = parseFloat(v);
+  if (FS_KEYS.indexOf(k) < 0 || !(v >= 8 && v <= 400)) return false;
+  document.documentElement.style.setProperty("--fs-" + k, v + "px");
+  return true;
+}
+FS_KEYS.forEach(k => { const v = q.get("fs" + k.charAt(0).toUpperCase() + k.slice(1)); if (v !== null) setFs(k, v); });
 
 const B = document.body.classList;
 B.add(q.get("color") === "dark" ? "dark" : "light");
@@ -172,6 +185,11 @@ function applyPos() {
   el.style.top = (pos.y / 100 * b.my) + "px";
 }
 addEventListener("resize", applyPos);
+addEventListener("message", e => {                       /* live size changes from the generator preview */
+  const d = e.data;
+  if (e.source !== parent || !d || d.type !== "wx-fs") return;
+  if (setFs(d.key, d.value)) applyPos();
+});
 
 let drag = null;
 el.addEventListener("pointerdown", e => {
