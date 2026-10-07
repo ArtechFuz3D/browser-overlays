@@ -188,6 +188,12 @@ summary { cursor: pointer; font-weight: 500; color: var(--sky-ink); }
 .check { display: flex; align-items: center; gap: .7rem; margin: .55rem 0; font-size: .95rem; font-weight: 500; cursor: pointer; }
 .check input { width: 1.15rem; height: 1.15rem; accent-color: var(--green); flex: none; }
 .group-title { margin: 1.2rem 0 .2rem; font-size: .72rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--grey); }
+.sizes { margin-top: 1rem; }
+.size-rows { display: grid; gap: .6rem; margin: .85rem 0 .9rem; }
+.size-row { display: grid; grid-template-columns: 6.8rem minmax(0, 1fr) 3.4rem; align-items: center; gap: .7rem; font-size: .88rem; font-weight: 500; color: var(--black); transition: opacity var(--ease); }
+.size-row.off { opacity: .4; }
+.size-row output { text-align: right; font-size: .8rem; color: var(--grey); font-variant-numeric: tabular-nums; }
+input[type=range] { width: 100%; height: 1.4rem; padding: 0; background: none; border: 0; accent-color: var(--sky-ink); cursor: pointer; }
 .note { margin-top: .8rem; font-size: .82rem; color: var(--grey); }
 
 /* ============================================
@@ -342,6 +348,11 @@ ol.how b { color: var(--black); }
         <div class="opt"><span>Update every</span>
           <select id="optMin" aria-label="Update interval"><option value="5">5 min</option><option value="10" selected>10 min</option><option value="15">15 min</option><option value="30">30 min</option><option value="60">60 min</option></select>
         </div>
+        <details class="sizes" id="sizes">
+          <summary>Text sizes (each element separately)</summary>
+          <div class="size-rows" id="sizeRows"></div>
+          <button id="resetSizes" type="button" class="btn ghost small">Reset sizes</button>
+        </details>
         <p class="group-title">Live update timer</p>
         <div class="live">
           <div class="big" id="liveTemp">--</div>
@@ -389,14 +400,51 @@ ol.how b { color: var(--black); }
 <footer class="footer">
   <div class="footer-inner">
     <p class="built">Built by <a href="https://artechfuz3d.github.io/" rel="noopener">ArtechFuz3D</a></p>
-    <p class="credit">Weather data: <a href="https://open-meteo.com/" rel="noopener">Open-Meteo</a>&middot; marine data incl. DWD</p>
+    <p class="credit">Weather data: <a href="https://open-meteo.com/" rel="noopener">Open-Meteo</a> &middot; marine data incl. DWD</p>
   </div>
 </footer>
 
 
 <script>
+(function () {
+
 const $ = id => document.getElementById(id);
-let place = null, unit = "C", color = "light", pos = null, status = null;
+let place = null, unit = "C", color = "light", pos = null, liveStatus = null;
+
+/* text sizes in px, one per element (defaults match the overlay) */
+const SIZE_DEFS = [
+  { k: "temp",  name: "Temperature", def: 92, min: 40, max: 200 },
+  { k: "unit",  name: "Unit symbol", def: 42, min: 16, max: 120 },
+  { k: "label", name: "City name",   def: 22, min: 12, max: 60, needs: "optLabel" },
+  { k: "wind",  name: "Wind",        def: 21, min: 12, max: 60, needs: "optWind" },
+  { k: "waves", name: "Waves",       def: 21, min: 12, max: 60, needs: "optWaves" },
+  { k: "tide",  name: "Tide",        def: 21, min: 12, max: 60, needs: "optTide" },
+  { k: "timer", name: "Countdown",   def: 16, min: 10, max: 40, needs: "optTimer" }
+];
+const sizes = {};
+SIZE_DEFS.forEach(d => { sizes[d.k] = d.def; });
+const sizeUi = {};
+const capital = k => k.charAt(0).toUpperCase() + k.slice(1);
+function sendSize(k) {
+  const w = $("frame").contentWindow;
+  if (w) w.postMessage({ type: "wx-fs", key: k, value: sizes[k] }, "*");
+}
+SIZE_DEFS.forEach(d => {
+  const row = document.createElement("label"); row.className = "size-row";
+  const name = document.createElement("span"); name.textContent = d.name;
+  const range = document.createElement("input"); range.type = "range"; range.min = d.min; range.max = d.max; range.step = 1; range.value = d.def; range.setAttribute("aria-label", d.name + " size");
+  const out = document.createElement("output"); out.textContent = d.def + " px";
+  range.addEventListener("input", () => { sizes[d.k] = +range.value; out.textContent = range.value + " px"; updateLink(); sendSize(d.k); });
+  row.append(name, range, out); $("sizeRows").append(row);
+  sizeUi[d.k] = { row, range, out };
+});
+function syncSizeRows() {
+  SIZE_DEFS.forEach(d => { if (d.needs) sizeUi[d.k].row.classList.toggle("off", !$(d.needs).checked); });
+}
+$("resetSizes").onclick = () => {
+  SIZE_DEFS.forEach(d => { sizes[d.k] = d.def; sizeUi[d.k].range.value = d.def; sizeUi[d.k].out.textContent = d.def + " px"; sendSize(d.k); });
+  updateLink();
+};
 
 function overlayUrl(withPos, forPreview) {
   const demo = forPreview ? $("optDemo").value : "live";
@@ -410,6 +458,7 @@ function overlayUrl(withPos, forPreview) {
   if ($("optLabel").checked) { p.set("label", "1"); p.set("name", place ? place.name : "Your city"); }
   if ($("optTimer").checked) p.set("timer", "1");
   if ($("optMin").value !== "10") p.set("minutes", $("optMin").value);
+  SIZE_DEFS.forEach(d => { if (sizes[d.k] !== d.def) p.set("fs" + capital(d.k), sizes[d.k]); });
   if (withPos && pos) { p.set("x", pos.x); p.set("y", pos.y); }
   if (forPreview && (demo !== "live" || !place)) p.set("demo", demo === "live" ? "sun" : demo);
   const base = new URL("overlay.html", location.href);
@@ -426,8 +475,8 @@ function paintControls() {
 }
 function updateLink() { if (place) { $("link").value = overlayUrl(true, false); $("copy").disabled = false; } }
 function reload() {               /* settings changed: rebuild preview */
-  paintControls();
-  status = null; paintStatus();
+  paintControls(); syncSizeRows();
+  liveStatus = null; paintStatus();
   $("frame").src = overlayUrl(true, true);
   updateLink();
 }
@@ -444,21 +493,21 @@ addEventListener("message", e => {
   if (e.source !== $("frame").contentWindow) return;
   const d = e.data || {};
   if (d.type === "wx-pos") { pos = { x: d.x, y: d.y }; updateLink(); }
-  if (d.type === "wx-status") { status = d; paintStatus(); }
+  if (d.type === "wx-status") { liveStatus = d; paintStatus(); }
 });
 
 /* live timer panel */
 const clock = t => new Date(t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 const mmss = ms => { const s = Math.max(0, Math.ceil(ms / 1000)); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); };
 function paintStatus() {
-  if (!status) { $("liveTemp").textContent = "--"; $("liveLast").textContent = place ? "Fetching first reading..." : "Waiting for a city"; $("liveNext").textContent = ""; $("fill").style.width = "0"; return; }
-  if (status.ok) $("liveTemp").textContent = status.temp + "°" + status.unit;
-  $("liveLast").textContent = (status.ok ? "Updated " : "Update failed ") + clock(status.updated);
-  const left = status.nextAt - Date.now();
+  if (!liveStatus) { $("liveTemp").textContent = "--"; $("liveLast").textContent = place ? "Fetching first reading..." : "Waiting for a city"; $("liveNext").textContent = ""; $("fill").style.width = "0"; return; }
+  if (liveStatus.ok) $("liveTemp").textContent = liveStatus.temp + "°" + liveStatus.unit;
+  $("liveLast").textContent = (liveStatus.ok ? "Updated " : "Update failed ") + clock(liveStatus.updated);
+  const left = liveStatus.nextAt - Date.now();
   $("liveNext").textContent = "Next in " + mmss(left);
-  $("fill").style.width = Math.max(0, Math.min(100, left / status.windowMs * 100)) + "%";
+  $("fill").style.width = Math.max(0, Math.min(100, left / liveStatus.windowMs * 100)) + "%";
 }
-setInterval(() => { if (status) paintStatus(); }, 1000);
+setInterval(() => { if (liveStatus) paintStatus(); }, 1000);
 
 /* city search */
 function say(text, isErr) { $("chosen").textContent = text; $("chosen").classList.toggle("err", !!isErr); }
@@ -521,14 +570,38 @@ fetch("https://api.open-meteo.com/v1/forecast?latitude=0&longitude=0&current=tem
 
 reload();
 
-/* sticky step bar: highlight the section being read */
+/* step bar highlight: works even when every section is already on screen */
 (function () {
   const chips = [...document.querySelectorAll(".chip")];
-  if (!("IntersectionObserver" in window)) return;
-  const io = new IntersectionObserver(es => es.forEach(e => {
-    if (e.isIntersecting) chips.forEach(c => c.classList.toggle("active", c.getAttribute("href") === "#" + e.target.id));
-  }), { rootMargin: "-25% 0px -65% 0px" });
-  chips.forEach(c => { const t = document.querySelector(c.getAttribute("href")); if (t) io.observe(t); });
+  const targets = chips.map(c => document.querySelector(c.getAttribute("href")));
+  const narrow = window.matchMedia("(max-width: 900px)");
+  let locked = false, lockY = null;
+  function setActive(i) {
+    chips.forEach((c, k) => { c.classList.toggle("active", k === i); if (k === i) c.setAttribute("aria-current", "true"); else c.removeAttribute("aria-current"); });
+  }
+  function spy() {
+    const max = document.documentElement.scrollHeight - innerHeight, y = window.scrollY;
+    if (locked) {
+      if (lockY === null || Math.abs(y - lockY) < 60) return;   /* keep the clicked chip until the reader scrolls on */
+      locked = false;
+    }
+    if (max <= 4) { setActive(0); return; }
+    let idx = 0;
+    if (narrow.matches) {                                       /* single column: follow the section under the reading line */
+      targets.forEach((t, i) => { if (t && t.getBoundingClientRect().top <= innerHeight * 0.35) idx = i; });
+    } else {                                                    /* two columns: spread the steps along the scroll distance */
+      idx = Math.min(chips.length - 1, Math.floor(y / max * chips.length));
+    }
+    if (y >= max - 2) idx = chips.length - 1;
+    setActive(idx);
+  }
+  chips.forEach((c, i) => c.addEventListener("click", () => {
+    setActive(i); locked = true; lockY = null;
+    setTimeout(() => { lockY = window.scrollY; }, 800);
+  }));
+  addEventListener("scroll", spy, { passive: true });
+  addEventListener("resize", spy);
+  spy();
 })();
 
 /* keep the preview at its true size (600x300) and scale it to fit the box */
@@ -539,6 +612,16 @@ reload();
   if ("ResizeObserver" in window) new ResizeObserver(fit).observe(stage); else addEventListener("resize", fit);
 })();
 
+
+/* if anything unexpected breaks, say so on the page instead of failing silently */
+addEventListener("error", e => {
+  const b = $("banner");
+  if (!b || !e.message) return;
+  b.style.display = "block";
+  b.textContent = "Something on this page failed to run: " + e.message + (e.lineno ? " (line " + e.lineno + ")" : "") + ". Try a hard refresh (Ctrl+Shift+R) and send this message to the developer if it persists.";
+});
+
+})();
 </script>
 
 <!-- OVERLAY -->
